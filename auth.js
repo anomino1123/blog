@@ -1,5 +1,5 @@
 // ============================================
-// AUTH.JS - AUTENTICAÇÃO
+// REPÓRTER DA PERIFERIA - AUTENTICAÇÃO
 // ============================================
 
 const Auth = {
@@ -55,6 +55,14 @@ const Auth = {
         return DB.getCurrentUser() !== null;
     },
     
+    requireAuth: function() {
+        if (!this.isLoggedIn()) {
+            window.location.href = 'login.html';
+            return false;
+        }
+        return true;
+    },
+    
     updateProfile: function(userId, updates) {
         const users = DB.getUsers();
         const index = users.findIndex(u => u.id === userId);
@@ -70,5 +78,10 @@ const Auth = {
             return true;
         }
         return false;
+    },
+    
+    isAdmin: function() {
+        const currentUser = DB.getCurrentUser();
+        return currentUser && (currentUser.role === 'admin' || currentUser.username === 'adminniriswest');
     }
 };

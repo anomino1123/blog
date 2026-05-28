@@ -1,7 +1,7 @@
 /* ============================================
-   PENSAMENTO ABERTO - DESIGN ÚNICO
-   Feito à mão, com alma e propósito
-============================================ */
+   REPÓRTER DA PERIFERIA - DESIGN PROFISSIONAL
+   A notícia que não chega no centro
+   ============================================ */
 
 * {
     margin: 0;
@@ -18,7 +18,6 @@
     --text-secondary: #a0a0b0;
     --accent: #e85d04;
     --accent-hover: #f48c06;
-    --accent-dark: #9d0208;
     --blue: #3b82f6;
     --purple: #8b5cf6;
     --pink: #ec4899;
@@ -41,7 +40,7 @@ body {
     margin: 0 auto;
 }
 
-/* SIDEBAR */
+/* ===== SIDEBAR ===== */
 .sidebar {
     width: 280px;
     background: var(--bg-sidebar);
@@ -173,7 +172,7 @@ body {
     color: #ef4444;
 }
 
-/* CONTEÚDO PRINCIPAL */
+/* ===== CONTEÚDO PRINCIPAL ===== */
 .main-content {
     flex: 1;
     padding: 24px 32px;
@@ -216,7 +215,7 @@ body {
     border-color: var(--accent);
 }
 
-/* POSTS */
+/* ===== POSTS ===== */
 .feed-container {
     display: flex;
     flex-direction: column;
@@ -341,18 +340,20 @@ body {
     border: none;
     color: #ef4444;
     cursor: pointer;
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     display: flex;
     align-items: center;
     gap: 6px;
     margin-left: auto;
+    padding: 6px 12px;
+    border-radius: 20px;
 }
 
 .delete-btn:hover {
-    opacity: 0.7;
+    background: rgba(239, 68, 68, 0.1);
 }
 
-/* SIDEBAR DIREITA */
+/* ===== SIDEBAR DIREITA ===== */
 .right-sidebar {
     width: 300px;
     padding: 24px 16px;
@@ -393,6 +394,7 @@ body {
     border-radius: 50%;
     color: white;
     cursor: pointer;
+    font-size: 1rem;
 }
 
 .dm-list, .suggestions-list, .notifications-list {
@@ -427,6 +429,26 @@ body {
     overflow: hidden;
 }
 
+.dm-avatar img, .suggestion-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dm-info, .suggestion-info {
+    flex: 1;
+}
+
+.dm-name, .suggestion-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.dm-preview, .suggestion-bio {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
 .follow-btn {
     background: none;
     border: 1px solid var(--accent);
@@ -443,7 +465,34 @@ body {
     color: white;
 }
 
-/* MODAIS */
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.notification-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+}
+
+.notification-text {
+    flex: 1;
+    font-size: 0.75rem;
+}
+
+.notification-time {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+}
+
+/* ===== MODAIS ===== */
 .modal {
     display: none;
     position: fixed;
@@ -507,6 +556,7 @@ body {
     color: var(--text-secondary);
     cursor: pointer;
     font-size: 0.8rem;
+    transition: all 0.2s;
 }
 
 .type-btn.active {
@@ -530,17 +580,74 @@ body {
     resize: vertical;
 }
 
+.audio-record-area {
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.record-btn, .stop-btn, .publish-btn, .send-btn {
+    padding: 12px 20px;
+    border-radius: 40px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.record-btn {
+    background: #ef4444;
+    border: none;
+    color: white;
+    width: 100%;
+}
+
+.stop-btn {
+    background: #6b7280;
+    border: none;
+    color: white;
+    width: 100%;
+    margin-top: 8px;
+}
+
 .publish-btn {
     background: linear-gradient(135deg, var(--accent), var(--accent-hover));
     border: none;
-    padding: 14px;
-    border-radius: 40px;
     color: white;
-    font-weight: 700;
     width: 100%;
-    cursor: pointer;
+    font-size: 1rem;
 }
 
+.send-btn {
+    background: var(--accent);
+    border: none;
+    color: white;
+}
+
+.dm-messages {
+    height: 350px;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg-hover);
+    border-radius: 16px;
+    margin-bottom: 16px;
+}
+
+.dm-input-area {
+    display: flex;
+    gap: 10px;
+}
+
+.dm-input-area input {
+    flex: 1;
+    padding: 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    color: white;
+}
+
+/* ===== BOTÃO FLUTUANTE ===== */
 .fab-button {
     position: fixed;
     bottom: 30px;
@@ -562,6 +669,7 @@ body {
     transform: scale(1.1);
 }
 
+/* ===== NOTIFICAÇÃO BADGE ===== */
 .notification-badge {
     position: fixed;
     top: 20px;
@@ -575,9 +683,11 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 0.7rem;
+    font-weight: bold;
     z-index: 300;
 }
 
+/* ===== LOADING ===== */
 .loading-spinner {
     text-align: center;
     padding: 40px;
@@ -591,7 +701,7 @@ body {
     font-size: 0.8rem;
 }
 
-/* RESPONSIVO */
+/* ===== RESPONSIVO ===== */
 @media (max-width: 1000px) {
     .right-sidebar {
         display: none;
@@ -616,6 +726,9 @@ body {
     .user-info {
         justify-content: center;
         padding: 12px;
+    }
+    .user-details {
+        display: none;
     }
     .main-content {
         padding: 16px;

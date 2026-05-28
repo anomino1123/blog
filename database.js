@@ -1,15 +1,15 @@
 // ============================================
-// PENSAMENTO ABERTO - DATABASE
-// Usuários: adminniriswest, anonimo, convidado
+// REPÓRTER DA PERIFERIA - DATABASE
+// Sistema de armazenamento local
 // ============================================
 
 const DB = {
     KEYS: {
-        USERS: 'pa_users',
-        POSTS: 'pa_posts',
-        CURRENT_USER: 'pa_current_user',
-        DMS: 'pa_dms',
-        NOTIFICATIONS: 'pa_notifications'
+        USERS: 'reporter_users',
+        POSTS: 'reporter_posts',
+        CURRENT_USER: 'reporter_current_user',
+        DMS: 'reporter_dms',
+        NOTIFICATIONS: 'reporter_notifications'
     },
 
     getUsers: function() {
@@ -23,7 +23,7 @@ const DB = {
                 username: "adminniriswest",
                 password: "123",
                 name: "Niris West",
-                bio: "Criadora do Pensamento Aberto. Jornalista, escritora e apaixonada por educação crítica.",
+                bio: "Fundadora do Repórter da Periferia. Jornalista, escritora e apaixonada por educação crítica. 🎙️",
                 avatar: null,
                 emoji: "👑",
                 isVerified: true,
@@ -37,7 +37,7 @@ const DB = {
                 username: "anonimo",
                 password: "qwe123qwe123",
                 name: "Anônimo",
-                bio: "🎭 Sem rótulos, sem máscaras. Só pensamento livre.",
+                bio: "🎭 Sem rótulos, sem máscaras. Só pensamento livre. Acredito que as ideias importam mais que os nomes.",
                 avatar: null,
                 emoji: "🎭",
                 isVerified: false,
@@ -51,7 +51,7 @@ const DB = {
                 username: "convidado",
                 password: "convidado123",
                 name: "Visitante",
-                bio: "Explorando o Pensamento Aberto. Quem sabe um dia crio minha conta?",
+                bio: "Explorando o Repórter da Periferia. Quem sabe um dia crio minha conta? 👋",
                 avatar: null,
                 emoji: "👋",
                 isVerified: false,
@@ -78,22 +78,22 @@ const DB = {
                 id: Date.now(),
                 userId: 1,
                 tipo: "jornal",
-                titulo: "A educação que queremos",
-                conteudo: "Depois de muito pensar, cheguei à conclusão: a escola não precisa de mais tecnologia. Precisa de mais humanidade. O que vocês acham?",
+                titulo: "Bem-vindos ao Repórter da Periferia",
+                conteudo: "Este é um espaço para pensar criticamente a sociedade, a escola e o mundo. Aqui, a periferia tem voz própria. Publique suas ideias, compartilhe suas reflexões e construa conosco um pensamento mais livre.",
                 emoji: "📰",
                 audioData: null,
                 data: new Date().toISOString(),
                 curtidas: [2, 3],
                 comentarios: [
-                    { userId: 2, username: "Anônimo", texto: "Concordo totalmente! Tecnologia sem propósito não resolve nada.", data: new Date().toISOString() }
+                    { userId: 2, username: "Anônimo", texto: "Que iniciativa incrível! Parabéns pelo espaço.", data: new Date().toISOString() }
                 ]
             },
             {
                 id: Date.now() + 1,
                 userId: 2,
                 tipo: "pensamento",
-                titulo: "O poder do questionamento",
-                conteudo: "A escola me ensinou a responder, não a perguntar. Só que as perguntas certas valem mais que qualquer resposta decorada.",
+                titulo: "A escola que eu quero",
+                conteudo: "Quero uma escola que ensine a perguntar, não só a responder. Que valorize o erro como aprendizado. Que prepare para a vida, não só para o vestibular.",
                 emoji: "💭",
                 audioData: null,
                 data: new Date(Date.now() - 86400000).toISOString(),
@@ -230,6 +230,6 @@ const DB = {
 
     isAdmin: function(userId) {
         const user = this.getUserById(userId);
-        return user && user.role === 'admin';
+        return user && (user.role === 'admin' || user.username === 'adminniriswest');
     }
 };

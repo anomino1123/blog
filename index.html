@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pensamento Aberto | Onde a ideia encontra voz</title>
+    <title>Repórter da Periferia | A notícia que não chega no centro</title>
+    <meta name="description" content="Análise crítica sobre sociedade, escola e política. A periferia tem voz própria.">
+    <meta name="author" content="Repórter da Periferia">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -15,13 +17,13 @@
     </div>
 
     <div class="app-wrapper">
-        <!-- Sidebar -->
+        <!-- SIDEBAR ESQUERDA -->
         <aside class="sidebar">
             <div class="logo-area">
-                <div class="logo-icon">💭</div>
+                <div class="logo-icon">📰</div>
                 <div class="logo-text">
-                    <h2>Pensamento<br>Aberto</h2>
-                    <p>Onde a ideia encontra voz</p>
+                    <h2>Repórter<br>da Periferia</h2>
+                    <p>A notícia que não chega no centro</p>
                 </div>
             </div>
 
@@ -32,7 +34,7 @@
                 </div>
                 <div class="user-details">
                     <h4 id="userName">Carregando...</h4>
-                    <p id="userBio">Pensador crítico</p>
+                    <p id="userBio">Carregando...</p>
                 </div>
             </div>
 
@@ -41,7 +43,7 @@
                     <i class="fas fa-home"></i> <span>Início</span>
                 </button>
                 <button class="nav-btn" data-page="teses">
-                    <i class="fas fa-brain"></i> <span>Minhas Teses</span>
+                    <i class="fas fa-brain"></i> <span>Teses</span>
                 </button>
                 <button class="nav-btn" data-page="diario">
                     <i class="fas fa-book"></i> <span>Diário</span>
@@ -61,15 +63,15 @@
             </nav>
         </aside>
 
-        <!-- Conteúdo principal -->
+        <!-- CONTEÚDO PRINCIPAL (FEED) -->
         <main class="main-content">
             <div class="top-bar">
                 <h1 id="pageTitle">Início</h1>
                 <div class="top-actions">
-                    <button class="icon-btn" id="refreshFeedBtn">
+                    <button class="icon-btn" id="refreshFeedBtn" title="Atualizar">
                         <i class="fas fa-sync-alt"></i>
                     </button>
-                    <button class="icon-btn" id="darkModeBtn">
+                    <button class="icon-btn" id="darkModeBtn" title="Modo escuro">
                         <i class="fas fa-moon"></i>
                     </button>
                 </div>
@@ -77,18 +79,18 @@
 
             <div id="feedContainer" class="feed-container">
                 <div class="loading-spinner">
-                    <i class="fas fa-spinner fa-spin"></i> Carregando...
+                    <i class="fas fa-spinner fa-spin"></i> Carregando publicações...
                 </div>
             </div>
         </main>
 
-        <!-- Sidebar direita -->
+        <!-- SIDEBAR DIREITA -->
         <aside class="right-sidebar">
             <div class="card">
                 <div class="card-header">
                     <i class="fas fa-comment-dots"></i>
                     <h3>Mensagens</h3>
-                    <button class="small-btn" id="newChatBtn">+</button>
+                    <button class="small-btn" id="newChatBtn" title="Nova conversa">+</button>
                 </div>
                 <div id="dmList" class="dm-list">
                     <p class="placeholder">Nenhuma conversa</p>
@@ -108,20 +110,32 @@
             <div class="card">
                 <div class="card-header">
                     <i class="fas fa-bell"></i>
-                    <h3>Últimas notificações</h3>
+                    <h3>Notificações</h3>
                 </div>
                 <div id="notificationsList" class="notifications-list">
                     <p class="placeholder">Sem notificações</p>
                 </div>
             </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-info-circle"></i>
+                    <h3>Sobre</h3>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5;">
+                    <p><strong>Repórter da Periferia</strong><br>"A notícia que não chega no centro"</p>
+                    <p style="margin-top: 10px;">Espaço independente para pensar criticamente a sociedade, a escola e o mundo.</p>
+                    <p style="margin-top: 8px;">📧 contato@reporterdaperiferia.com</p>
+                </div>
+            </div>
         </aside>
     </div>
 
-    <!-- Modal de postagem -->
+    <!-- MODAL DE POSTAGEM -->
     <div id="postModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>O que você está pensando?</h3>
+                <h3><i class="fas fa-pen-fancy"></i> O que você está pensando?</h3>
                 <button class="close-modal">&times;</button>
             </div>
             <div class="post-type-selector">
@@ -132,7 +146,7 @@
                 <button class="type-btn" data-type="audio">🎙️ Áudio</button>
             </div>
             <input type="text" id="postTitleInput" placeholder="Título" class="post-input">
-            <textarea id="postContentInput" placeholder="Escreva aqui..." class="post-textarea"></textarea>
+            <textarea id="postContentInput" placeholder="Escreva sua reflexão..." class="post-textarea"></textarea>
             <input type="text" id="postEmojiInput" placeholder="Emoji (ex: 🔥, 💡, 📌)" class="post-input">
             
             <div id="audioRecordArea" class="audio-record-area" style="display: none;">
@@ -142,11 +156,11 @@
                 <input type="hidden" id="audioDataField">
             </div>
             
-            <button id="publishPostBtn" class="publish-btn">Publicar</button>
+            <button id="publishPostBtn" class="publish-btn"><i class="fas fa-paper-plane"></i> Publicar</button>
         </div>
     </div>
 
-    <!-- Modal de DM -->
+    <!-- MODAL DE DM -->
     <div id="dmModal" class="modal dm-modal">
         <div class="modal-content small">
             <div class="modal-header">
@@ -156,12 +170,12 @@
             <div id="dmMessagesArea" class="dm-messages"></div>
             <div class="dm-input-area">
                 <input type="text" id="dmMessageInput" placeholder="Digite sua mensagem...">
-                <button id="sendDmBtn" class="send-btn">Enviar</button>
+                <button id="sendDmBtn" class="send-btn"><i class="fas fa-paper-plane"></i> Enviar</button>
             </div>
         </div>
     </div>
 
-    <!-- Botão flutuante de postagem -->
+    <!-- BOTÃO FLUTUANTE DE POSTAGEM -->
     <button id="fabPostBtn" class="fab-button">
         <i class="fas fa-plus"></i>
     </button>

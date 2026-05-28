@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Criar conta | Pensamento Aberto</title>
+    <title>Repórter da Periferia | Criar conta</title>
+    <meta name="description" content="Registre-se no Repórter da Periferia">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -45,6 +46,7 @@
         .register-card p {
             color: #a0a0a0;
             margin-bottom: 32px;
+            font-size: 0.85rem;
         }
         .register-card input {
             width: 100%;
@@ -80,21 +82,28 @@
             border-radius: 12px;
             margin-bottom: 20px;
         }
+        .site-name {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            color: #e85d04;
+        }
     </style>
 </head>
 <body>
     <div class="register-container">
         <div class="register-card">
-            <div class="register-logo">💭</div>
+            <div class="site-name">REPÓRTER DA PERIFERIA</div>
+            <div class="register-logo">📰</div>
             <h2>Criar conta</h2>
-            <p>Junte-se à comunidade</p>
+            <p>Junte-se à nossa comunidade</p>
             
             <div id="errorMsg" class="error-msg" style="display: none;"></div>
             
             <input type="text" id="regUsername" placeholder="Nome de usuário">
             <input type="text" id="regName" placeholder="Seu nome">
-            <input type="password" id="regPassword" placeholder="Senha">
-            <button id="doRegisterBtn">Criar conta</button>
+            <input type="password" id="regPassword" placeholder="Senha (mínimo 3 caracteres)">
+            <button id="doRegisterBtn"><i class="fas fa-user-plus"></i> Criar conta</button>
             
             <div class="register-footer">
                 Já tem conta? <a href="login.html">Faça login</a>
@@ -133,8 +142,10 @@
                 bio: "Novo por aqui. Vamos trocar ideias?",
                 avatar: null,
                 emoji: "📝",
+                isVerified: false,
                 followers: [],
                 following: [],
+                role: "user",
                 createdAt: new Date().toISOString()
             };
             
@@ -153,6 +164,12 @@
                 errorDiv.style.display = 'none';
             }, 3000);
         }
+        
+        document.getElementById('regPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('doRegisterBtn').click();
+            }
+        });
     </script>
 </body>
 </html>

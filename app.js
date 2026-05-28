@@ -1,6 +1,5 @@
 // ============================================
-// APP.JS - LÓGICA PRINCIPAL
-// Inclui sistema de deletar posts (admin)
+// REPÓRTER DA PERIFERIA - APLICAÇÃO PRINCIPAL
 // ============================================
 
 let currentUser = null;
@@ -24,7 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function updateUserInterface() {
-    document.getElementById('userName').innerHTML = currentUser.name + (currentUser.isVerified ? ' <i class="fas fa-check-circle" style="color:#3b82f6; font-size:0.7rem;"></i>' : '');
+    const verifiedHtml = currentUser.isVerified ? '<i class="fas fa-check-circle verified-icon"></i>' : '';
+    document.getElementById('userName').innerHTML = currentUser.name + ' ' + verifiedHtml;
     document.getElementById('userBio').textContent = currentUser.bio;
     
     if (currentUser.avatar) {
@@ -94,7 +94,7 @@ function changePage(page) {
     });
     
     const titles = { 'feed': 'Início', 'teses': 'Teses', 'diario': 'Diário', 'jornal': 'Notícias', 'audio': 'Áudios' };
-    document.getElementById('pageTitle').textContent = titles[page] || 'Pensamento Aberto';
+    document.getElementById('pageTitle').textContent = titles[page] || 'Repórter da Periferia';
     renderCurrentPage();
 }
 
@@ -124,10 +124,10 @@ function renderCurrentPage() {
 
 function renderFeed(posts) {
     const container = document.getElementById('feedContainer');
-    const isAdmin = currentUser.role === 'admin';
+    const isAdmin = Auth.isAdmin();
     
     if (posts.length === 0) {
-        container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;"><i class="fas fa-newspaper" style="font-size: 3rem; opacity: 0.3;"></i><p style="margin-top: 16px;">Nenhuma publicação por aqui.</p></div>`;
+        container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;"><i class="fas fa-newspaper" style="font-size: 3rem; opacity: 0.3;"></i><p style="margin-top: 16px;">Nenhuma publicação por aqui.</p><p style="font-size: 0.8rem;">Clique no botão + para começar!</p></div>`;
         return;
     }
     
@@ -148,12 +148,14 @@ function renderFeed(posts) {
         const deleteButton = (isAdmin || post.userId === currentUser.id) ? 
             `<button class="delete-btn" onclick="deletePost(${post.id})"><i class="fas fa-trash"></i> Excluir</button>` : '';
         
+        const verifiedBadge = author?.isVerified ? '<i class="fas fa-check-circle verified-icon"></i>' : '';
+        
         return `
             <div class="post-card">
                 <div class="post-header">
                     <div class="post-avatar">${author?.avatar ? `<img src="${author.avatar}">` : `<span>${author?.emoji || '📝'}</span>`}</div>
                     <div>
-                        <div class="post-author">${author?.name || 'Usuário'} ${author?.isVerified ? '<i class="fas fa-check-circle verified-icon"></i>' : ''}</div>
+                        <div class="post-author">${author?.name || 'Usuário'} ${verifiedBadge}</div>
                         <div class="post-time">${timeAgo}</div>
                     </div>
                     ${deleteButton}
@@ -167,9 +169,9 @@ function renderFeed(posts) {
                     <button class="action-btn" onclick="toggleComments(${post.id})"><i class="far fa-comment"></i> ${post.comentarios?.length || 0}</button>
                 </div>
                 <div id="comments-${post.id}" style="display: none; margin-top: 16px;">
-                    <div class="comment-list">${commentsHtml || '<p style="opacity:0.6;">Nenhum comentário</p>'}</div>
+                    <div class="comment-list">${commentsHtml || '<p style="opacity:0.6;">Nenhum comentário ainda</p>'}</div>
                     <div style="display: flex; gap: 8px; margin-top: 12px;">
-                        <input type="text" id="commentInput-${post.id}" placeholder="Comentar..." style="flex:1; padding: 10px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 40px; color: white;">
+                        <input type="text" id="commentInput-${post.id}" placeholder="Escreva um comentário..." style="flex:1; padding: 10px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 40px; color: white;">
                         <button onclick="addComment(${post.id})" style="background: var(--accent); border: none; padding: 0 20px; border-radius: 40px; cursor: pointer;">Enviar</button>
                     </div>
                 </div>
@@ -179,7 +181,7 @@ function renderFeed(posts) {
 }
 
 window.deletePost = function(postId) {
-    if (confirm('Tem certeza que deseja excluir esta publicação?')) {
+    if (confirm('Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita.')) {
         DB.deletePost(postId);
         renderCurrentPage();
         Notifications.create(currentUser.id, 'system', 'Você excluiu uma publicação', postId);
@@ -256,7 +258,7 @@ window.toggleLike = function(postId) {
         } else {
             post.curtidas.push(currentUser.id);
             if (post.userId !== currentUser.id) {
-                Notifications.create(post.userId, 'like', `${currentUser.name} curtiu seu post`, postId);
+                Notifications.create(post.userId, 'like', `${currentUser.name} curtiu seu post "${post.titulo.substring(0, 30)}"`, postId);
             }
         }
         DB.savePosts(posts);
@@ -283,7 +285,7 @@ window.addComment = function(postId) {
         DB.savePosts(posts);
         
         if (post.userId !== currentUser.id) {
-            Notifications.create(post.userId, 'comment', `${currentUser.name} comentou no seu post`, postId);
+            Notifications.create(post.userId, 'comment', `${currentUser.name} comentou no seu post "${post.titulo.substring(0, 30)}"`, postId);
         }
         input.value = '';
         renderCurrentPage();
@@ -297,7 +299,8 @@ window.followUser = function(userId) {
 };
 
 window.playAudio = function(audioData) {
-    new Audio(audioData).play();
+    const audio = new Audio(audioData);
+    audio.play();
 };
 
 window.openDM = function(userId) {
@@ -315,7 +318,7 @@ function renderDMMessages(userId) {
     container.innerHTML = messages.map(msg => `
         <div style="text-align: ${msg.from === currentUser.id ? 'right' : 'left'}; margin-bottom: 12px;">
             <div style="background: ${msg.from === currentUser.id ? 'var(--accent)' : 'var(--bg-hover)'}; display: inline-block; padding: 10px 16px; border-radius: 20px; max-width: 80%;">${msg.message}</div>
-            <div style="font-size: 0.65rem; opacity: 0.6;">${new Date(msg.time).toLocaleTimeString()}</div>
+            <div style="font-size: 0.65rem; opacity: 0.6; margin-top: 4px;">${new Date(msg.time).toLocaleTimeString()}</div>
         </div>
     `).join('');
     container.scrollTop = container.scrollHeight;
@@ -373,7 +376,7 @@ function setupAudioRecording() {
             startBtn.style.display = 'none';
             stopBtn.style.display = 'block';
         } catch(err) {
-            alert('Permita acesso ao microfone');
+            alert('Permita acesso ao microfone para gravar áudio');
         }
     });
     
@@ -434,8 +437,10 @@ function getTimeAgo(dateString) {
     return date.toLocaleDateString('pt-BR');
 }
 
+let darkMode = false;
 function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
+    darkMode = !darkMode;
+    document.body.style.background = darkMode ? '#1a1a2e' : '#0a0a0a';
 }
 
 function startRealtimeUpdates() {

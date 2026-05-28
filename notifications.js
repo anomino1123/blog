@@ -1,5 +1,5 @@
 // ============================================
-// NOTIFICATIONS.JS - SISTEMA DE NOTIFICAÇÕES
+// REPÓRTER DA PERIFERIA - NOTIFICAÇÕES
 // ============================================
 
 const Notifications = {
@@ -40,6 +40,16 @@ const Notifications = {
         }
     },
     
+    markAllAsRead: function() {
+        const currentUser = DB.getCurrentUser();
+        if (!currentUser) return;
+        const notifications = DB.getNotifications();
+        notifications.forEach(n => { if (n.userId === currentUser.id) n.read = true; });
+        DB.saveNotifications(notifications);
+        this.updateBadge();
+        this.renderList();
+    },
+    
     getUserNotifications: function() {
         const currentUser = DB.getCurrentUser();
         if (!currentUser) return [];
@@ -68,13 +78,14 @@ const Notifications = {
             }
         }
         
-        document.title = count > 0 ? `(${count}) Pensamento Aberto` : 'Pensamento Aberto';
+        document.title = count > 0 ? `(${count}) Repórter da Periferia` : 'Repórter da Periferia';
     },
     
     showPushNotification: function(message) {
         if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('Pensamento Aberto', {
+            new Notification('Repórter da Periferia', {
                 body: message,
+                icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23e85d04"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"%3E%3C/path%3E%3C/svg%3E',
                 silent: false
             });
         }
@@ -129,7 +140,6 @@ const Notifications = {
         const date = new Date(dateString);
         const now = new Date();
         const seconds = Math.floor((now - date) / 1000);
-        
         if (seconds < 60) return 'agora mesmo';
         const minutes = Math.floor(seconds / 60);
         if (minutes < 60) return `${minutes} min atrás`;

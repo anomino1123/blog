@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pensamento Aberto | Entre e compartilhe ideias</title>
+    <title>Repórter da Periferia | Entre e compartilhe ideias</title>
+    <meta name="description" content="Login - Acesso ao portal Repórter da Periferia">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -43,12 +44,12 @@
         }
         .login-card h2 {
             margin-bottom: 8px;
-            font-size: 1.6rem;
+            font-size: 1.5rem;
         }
         .login-card p {
             color: #a0a0a0;
             margin-bottom: 32px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         .login-card input {
             width: 100%;
@@ -127,22 +128,29 @@
             margin-top: 20px;
             color: #5a5a6a;
         }
+        .site-name {
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            color: #e85d04;
+        }
     </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
+            <div class="site-name">REPÓRTER DA PERIFERIA</div>
             <div class="login-logo">
-                💭
+                📰
             </div>
-            <h2>Pensamento Aberto</h2>
-            <p>Onde a ideia encontra voz</p>
+            <h2>Bem-vindo de volta</h2>
+            <p>"A notícia que não chega no centro"</p>
             
             <div id="errorMsg" class="error-msg" style="display: none;"></div>
             
             <input type="text" id="loginUsername" placeholder="Nome de usuário">
             <input type="password" id="loginPassword" placeholder="Senha">
-            <button id="doLoginBtn">Entrar</button>
+            <button id="doLoginBtn"><i class="fas fa-sign-in-alt"></i> Entrar</button>
             
             <div class="divider">ou</div>
             
@@ -162,7 +170,6 @@
 
     <script src="database.js"></script>
     <script>
-        // Botão de login normal
         document.getElementById('doLoginBtn').addEventListener('click', function() {
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
@@ -182,7 +189,6 @@
             }
         });
         
-        // Botão de acesso convidado
         document.getElementById('guestBtn').addEventListener('click', function() {
             const users = DB.getUsers();
             const guestUser = users.find(u => u.username === 'convidado');

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meu Perfil | Pensamento Aberto</title>
+    <title>Repórter da Periferia | Meu Perfil</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -189,13 +189,11 @@
         let currentUser = null;
         let selectedEmoji = '🧠';
         
-        // Carregar usuário
         currentUser = DB.getCurrentUser();
         if (!currentUser) {
             window.location.href = 'login.html';
         }
         
-        // Preencher dados
         document.getElementById('profileName').value = currentUser.name || '';
         document.getElementById('profileBio').value = currentUser.bio || '';
         selectedEmoji = currentUser.emoji || '🧠';
@@ -203,12 +201,10 @@
         document.getElementById('displayName').textContent = currentUser.name;
         document.getElementById('displayUsername').textContent = '@' + currentUser.username;
         
-        // Verificar se é admin (selo verificado)
-        if (currentUser.username === 'adminniriswest') {
+        if (currentUser.isVerified === true || currentUser.username === 'adminniriswest') {
             document.getElementById('verifiedContainer').style.display = 'inline-flex';
         }
         
-        // Avatar
         if (currentUser.avatar) {
             document.getElementById('avatarLargeImage').src = currentUser.avatar;
             document.getElementById('avatarLargeImage').style.display = 'block';
@@ -217,7 +213,6 @@
             document.getElementById('avatarLargeEmoji').textContent = currentUser.emoji || '🧠';
         }
         
-        // Marcar emoji selecionado
         document.querySelectorAll('.emoji-option').forEach(opt => {
             if (opt.dataset.emoji === selectedEmoji) {
                 opt.classList.add('selected');
@@ -229,7 +224,6 @@
             });
         });
         
-        // Upload de avatar
         document.getElementById('avatarLargeBtn').addEventListener('click', () => {
             document.getElementById('avatarUpload').click();
         });
@@ -248,7 +242,6 @@
             }
         });
         
-        // Salvar perfil
         document.getElementById('saveProfileBtn').addEventListener('click', () => {
             const newName = document.getElementById('profileName').value;
             const newBio = document.getElementById('profileBio').value;

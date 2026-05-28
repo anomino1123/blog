@@ -1,6 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - DATABASE
-// Sistema de armazenamento local
+// Versão 2.0 - Com posts salvos e mais recursos
 // ============================================
 
 const DB = {
@@ -9,14 +9,14 @@ const DB = {
         POSTS: 'reporter_posts',
         CURRENT_USER: 'reporter_current_user',
         DMS: 'reporter_dms',
-        NOTIFICATIONS: 'reporter_notifications'
+        NOTIFICATIONS: 'reporter_notifications',
+        SAVED_POSTS: 'reporter_saved_posts'
     },
 
     getUsers: function() {
         const data = localStorage.getItem(this.KEYS.USERS);
         if (data) return JSON.parse(data);
         
-        // USUÁRIOS FIXOS
         const initialUsers = [
             {
                 id: 1,
@@ -37,7 +37,7 @@ const DB = {
                 username: "anonimo",
                 password: "qwe123qwe123",
                 name: "Anônimo",
-                bio: "🎭 Sem rótulos, sem máscaras. Só pensamento livre. Acredito que as ideias importam mais que os nomes.",
+                bio: "🎭 Sem rótulos, sem máscaras. Só pensamento livre.",
                 avatar: null,
                 emoji: "🎭",
                 isVerified: false,
@@ -51,7 +51,7 @@ const DB = {
                 username: "convidado",
                 password: "convidado123",
                 name: "Visitante",
-                bio: "Explorando o Repórter da Periferia. Quem sabe um dia crio minha conta? 👋",
+                bio: "Explorando o Repórter da Periferia. 👋",
                 avatar: null,
                 emoji: "👋",
                 isVerified: false,
@@ -79,26 +79,17 @@ const DB = {
                 userId: 1,
                 tipo: "jornal",
                 titulo: "Bem-vindos ao Repórter da Periferia",
-                conteudo: "Este é um espaço para pensar criticamente a sociedade, a escola e o mundo. Aqui, a periferia tem voz própria. Publique suas ideias, compartilhe suas reflexões e construa conosco um pensamento mais livre.",
+                conteudo: "Este é um espaço para pensar criticamente a sociedade, a escola e o mundo. Aqui, a periferia tem voz própria.",
                 emoji: "📰",
+                imagem: null,
+                hashtags: ["periferia", "educacao", "sociedade"],
                 audioData: null,
                 data: new Date().toISOString(),
                 curtidas: [2, 3],
                 comentarios: [
-                    { userId: 2, username: "Anônimo", texto: "Que iniciativa incrível! Parabéns pelo espaço.", data: new Date().toISOString() }
-                ]
-            },
-            {
-                id: Date.now() + 1,
-                userId: 2,
-                tipo: "pensamento",
-                titulo: "A escola que eu quero",
-                conteudo: "Quero uma escola que ensine a perguntar, não só a responder. Que valorize o erro como aprendizado. Que prepare para a vida, não só para o vestibular.",
-                emoji: "💭",
-                audioData: null,
-                data: new Date(Date.now() - 86400000).toISOString(),
-                curtidas: [1],
-                comentarios: []
+                    { userId: 2, username: "Anônimo", texto: "Que iniciativa incrível!", data: new Date().toISOString() }
+                ],
+                editado: false
             }
         ];
         localStorage.setItem(this.KEYS.POSTS, JSON.stringify(initialPosts));
@@ -116,11 +107,57 @@ const DB = {
         return post;
     },
 
+    updatePost: function(postId, updates) {
+        const posts = this.getPosts();
+        const index = posts.findIndex(p => p.id === postId);
+        if (index !== -1) {
+            posts[index] = { ...posts[index], ...updates, editado: true };
+            this.savePosts(posts);
+            return true;
+        }
+        return false;
+    },
+
     deletePost: function(postId) {
         let posts = this.getPosts();
         posts = posts.filter(p => p.id !== postId);
         this.savePosts(posts);
         return true;
+    },
+
+    // Posts salvos (favoritos)
+    getSavedPosts: function(userId) {
+        const saved = localStorage.getItem(this.KEYS.SAVED_POSTS);
+        const savedData = saved ? JSON.parse(saved) : {};
+        return savedData[userId] || [];
+    },
+
+    savePost: function(userId, postId) {
+        const saved = localStorage.getItem(this.KEYS.SAVED_POSTS);
+        const savedData = saved ? JSON.parse(saved) : {};
+        if (!savedData[userId]) savedData[userId] = [];
+        if (!savedData[userId].includes(postId)) {
+            savedData[userId].push(postId);
+            localStorage.setItem(this.KEYS.SAVED_POSTS, JSON.stringify(savedData));
+            return true;
+        }
+        return false;
+    },
+
+    unsavePost: function(userId, postId) {
+        const saved = localStorage.getItem(this.KEYS.SAVED_POSTS);
+        const savedData = saved ? JSON.parse(saved) : {};
+        if (savedData[userId]) {
+            savedData[userId] = savedData[userId].filter(id => id !== postId);
+            localStorage.setItem(this.KEYS.SAVED_POSTS, JSON.stringify(savedData));
+            return true;
+        }
+        return false;
+    },
+
+    isPostSaved: function(userId, postId) {
+        const saved = this.getSavedPosts(userId);
+        return saved.includes(postId);
     },
 
     getDMs: function() {
@@ -231,5 +268,23 @@ const DB = {
     isAdmin: function(userId) {
         const user = this.getUserById(userId);
         return user && (user.role === 'admin' || user.username === 'adminniriswest');
+    },
+
+    searchPosts: function(termo) {
+        const posts = this.getPosts();
+        const termoLower = termo.toLowerCase();
+        return posts.filter(post => 
+            post.titulo.toLowerCase().includes(termoLower) ||
+            post.conteudo.toLowerCase().includes(termoLower) ||
+            (post.hashtags && post.hashtags.some(tag => tag.toLowerCase().includes(termoLower)))
+        );
+    },
+
+    getPostsByHashtag: function(hashtag) {
+        const posts = this.getPosts();
+        const hashtagLower = hashtag.toLowerCase().replace('#', '');
+        return posts.filter(post => 
+            post.hashtags && post.hashtags.some(tag => tag.toLowerCase() === hashtagLower)
+        );
     }
 };

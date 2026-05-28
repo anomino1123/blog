@@ -1,8 +1,36 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - NOTIFICAÇÕES
+// Com push notifications reais
 // ============================================
 
 const Notifications = {
+    permissionGranted: false,
+
+    init: async function() {
+        if ('Notification' in window) {
+            const permission = await Notification.requestPermission();
+            this.permissionGranted = permission === 'granted';
+            
+            if (this.permissionGranted) {
+                console.log('Notificações push ativadas');
+            }
+        }
+        
+        // Registrar Service Worker para push
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                if (!subscription) {
+                    // Aqui você pode enviar para um backend
+                    console.log('Push não configurado');
+                }
+            } catch (err) {
+                console.log('Erro no push:', err);
+            }
+        }
+    },
+
     create: function(userId, type, message, relatedId = null) {
         const notifications = DB.getNotifications();
         
@@ -23,10 +51,27 @@ const Notifications = {
         if (currentUser && currentUser.id === userId) {
             this.updateBadge();
             this.renderList();
+            this.showPushNotification(message);
         }
         
-        this.showPushNotification(message);
         return newNotification;
+    },
+    
+    showPushNotification: function(message) {
+        if (this.permissionGranted && document.visibilityState === 'hidden') {
+            new Notification('Repórter da Periferia', {
+                body: message,
+                icon: '/icons/icon-192.png',
+                badge: '/icons/icon-72.png',
+                vibrate: [200, 100, 200],
+                silent: false
+            });
+        } else if (this.permissionGranted) {
+            // Mostrar toast se estiver na página
+            if (typeof showToast === 'function') {
+                showToast('🔔 ' + message);
+            }
+        }
     },
     
     markAsRead: function(notificationId) {
@@ -43,8 +88,11 @@ const Notifications = {
     markAllAsRead: function() {
         const currentUser = DB.getCurrentUser();
         if (!currentUser) return;
+        
         const notifications = DB.getNotifications();
-        notifications.forEach(n => { if (n.userId === currentUser.id) n.read = true; });
+        notifications.forEach(n => {
+            if (n.userId === currentUser.id) n.read = true;
+        });
         DB.saveNotifications(notifications);
         this.updateBadge();
         this.renderList();
@@ -79,22 +127,6 @@ const Notifications = {
         }
         
         document.title = count > 0 ? `(${count}) Repórter da Periferia` : 'Repórter da Periferia';
-    },
-    
-    showPushNotification: function(message) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('Repórter da Periferia', {
-                body: message,
-                icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23e85d04"%3E%3Cpath d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"%3E%3C/path%3E%3C/svg%3E',
-                silent: false
-            });
-        }
-    },
-    
-    requestPermission: function() {
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
     },
     
     renderList: function() {
@@ -151,8 +183,9 @@ const Notifications = {
     }
 };
 
+// Inicializar
 if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
-        Notifications.requestPermission();
+        Notifications.init();
     });
 }

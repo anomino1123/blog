@@ -1,5 +1,6 @@
 // ============================================
-// REPÓRTER DA PERIFERIA - APLICAÇÃO PRINCIPAL
+// REPÓRTER DA PERIFERIA - APP PRINCIPAL
+// Versão 2.0 - Com todas as funcionalidades
 // ============================================
 
 let currentUser = null;
@@ -8,6 +9,13 @@ let currentDMTarget = null;
 let selectedPostType = 'pensamento';
 let mediaRecorder = null;
 let audioChunks = [];
+let currentFilter = 'all';
+let currentSearchTerm = '';
+let currentPagePosts = 0;
+let isLoading = false;
+let postsToShow = 10;
+let editingPostId = null;
+let selectedImage = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     currentUser = DB.getCurrentUser();
@@ -20,6 +28,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadInitialData();
     setupEventListeners();
     startRealtimeUpdates();
+    setupSearch();
+    setupFilters();
 });
 
 function updateUserInterface() {
@@ -58,8 +68,11 @@ function setupEventListeners() {
     });
     
     document.getElementById('fabPostBtn').addEventListener('click', openPostModal);
-    document.getElementById('refreshFeedBtn').addEventListener('click', () => renderCurrentPage());
-    document.getElementById('darkModeBtn').addEventListener('click', toggleDarkMode);
+    document.getElementById('refreshFeedBtn').addEventListener('click', () => {
+        currentPagePosts = 0;
+        renderCurrentPage();
+        showToast('Feed atualizado!');
+    });
     document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
     
     const modal = document.getElementById('postModal');
@@ -81,10 +94,21 @@ function setupEventListeners() {
     document.getElementById('publishPostBtn').addEventListener('click', publishPost);
     document.getElementById('sendDmBtn').addEventListener('click', sendDirectMessage);
     document.getElementById('newChatBtn').addEventListener('click', openNewChatModal);
+    
+    // Upload de imagem
+    setupImageUpload('postImageInput', 'postImagePreview', (imageData) => {
+        selectedImage = imageData;
+    });
+    
+    // Contador de caracteres
+    initCharCounter('postContentInput', 'charCounter');
 }
 
 function changePage(page) {
     currentPage = page;
+    currentPagePosts = 0;
+    currentFilter = 'all';
+    
     document.querySelectorAll('.nav-btn').forEach(btn => {
         if (btn.dataset.page === page) {
             btn.classList.add('active');
@@ -96,6 +120,53 @@ function changePage(page) {
     const titles = { 'feed': 'Início', 'teses': 'Teses', 'diario': 'Diário', 'jornal': 'Notícias', 'audio': 'Áudios' };
     document.getElementById('pageTitle').textContent = titles[page] || 'Repórter da Periferia';
     renderCurrentPage();
+}
+
+function setupSearch() {
+    const searchInput = document.getElementById('searchInput');
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', (e) => {
+        currentSearchTerm = e.target.value.toLowerCase();
+        currentPagePosts = 0;
+        renderCurrentPage();
+    });
+}
+
+function setupFilters() {
+    const filterChips = document.querySelectorAll('.filter-chip');
+    filterChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            filterChips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            currentFilter = chip.dataset.filter;
+            currentPagePosts = 0;
+            renderCurrentPage();
+        });
+    });
+}
+
+function getFilteredPosts(posts) {
+    let filtered = [...posts];
+    
+    // Filtrar por tipo de post
+    if (currentFilter !== 'all') {
+        filtered = filtered.filter(p => p.tipo === currentFilter);
+    }
+    
+    // Filtrar por busca
+    if (currentSearchTerm) {
+        filtered = filtered.filter(p => 
+            p.titulo.toLowerCase().includes(currentSearchTerm) ||
+            p.conteudo.toLowerCase().includes(currentSearchTerm) ||
+            (p.hashtags && p.hashtags.some(tag => tag.toLowerCase().includes(currentSearchTerm)))
+        );
+    }
+    
+    // Ordenar por data (mais recentes primeiro)
+    filtered.sort((a, b) => new Date(b.data) - new Date(a.data));
+    
+    return filtered;
 }
 
 function renderCurrentPage() {
@@ -119,74 +190,134 @@ function renderCurrentPage() {
             break;
     }
     
-    renderFeed(posts);
+    posts = getFilteredPosts(posts);
+    renderFeedWithPagination(posts);
 }
 
-function renderFeed(posts) {
+function renderFeedWithPagination(allPosts) {
     const container = document.getElementById('feedContainer');
-    const isAdmin = Auth.isAdmin();
+    const paginatedPosts = allPosts.slice(0, currentPagePosts + postsToShow);
+    const hasMore = paginatedPosts.length < allPosts.length;
     
-    if (posts.length === 0) {
-        container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;"><i class="fas fa-newspaper" style="font-size: 3rem; opacity: 0.3;"></i><p style="margin-top: 16px;">Nenhuma publicação por aqui.</p><p style="font-size: 0.8rem;">Clique no botão + para começar!</p></div>`;
+    if (paginatedPosts.length === 0 && currentPagePosts === 0) {
+        container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;">
+            <i class="fas fa-newspaper" style="font-size: 3rem; opacity: 0.3;"></i>
+            <p style="margin-top: 16px;">Nenhuma publicação encontrada.</p>
+            <p style="font-size: 0.8rem;">Clique no botão + para começar!</p>
+        </div>`;
         return;
     }
     
-    container.innerHTML = posts.map(post => {
-        const author = DB.getUserById(post.userId);
-        const badgeClass = `badge-${post.tipo}`;
-        const badgeName = { 'pensamento': '💭 Pensamento', 'tese': '📚 Tese', 'diario': '📓 Diário', 'jornal': '📰 Notícia', 'audio': '🎙️ Áudio' }[post.tipo];
-        const isLiked = post.curtidas && post.curtidas.includes(currentUser.id);
-        const timeAgo = getTimeAgo(post.data);
-        
-        let audioHtml = '';
-        if (post.audioData) {
-            audioHtml = `<div style="margin: 12px 0;"><button onclick="playAudio('${post.audioData}')" class="action-btn"><i class="fas fa-play"></i> Ouvir áudio</button></div>`;
-        }
-        
-        const commentsHtml = (post.comentarios || []).map(c => `<div style="padding: 8px 0; border-bottom: 1px solid var(--border);"><strong>${c.username}</strong>: ${c.texto}</div>`).join('');
-        
-        const deleteButton = (isAdmin || post.userId === currentUser.id) ? 
-            `<button class="delete-btn" onclick="deletePost(${post.id})"><i class="fas fa-trash"></i> Excluir</button>` : '';
-        
-        const verifiedBadge = author?.isVerified ? '<i class="fas fa-check-circle verified-icon"></i>' : '';
-        
-        return `
-            <div class="post-card">
-                <div class="post-header">
-                    <div class="post-avatar">${author?.avatar ? `<img src="${author.avatar}">` : `<span>${author?.emoji || '📝'}</span>`}</div>
-                    <div>
-                        <div class="post-author">${author?.name || 'Usuário'} ${verifiedBadge}</div>
-                        <div class="post-time">${timeAgo}</div>
-                    </div>
-                    ${deleteButton}
-                </div>
-                <div class="post-badge ${badgeClass}">${badgeName}</div>
-                <h3 class="post-title">${post.emoji || '📝'} ${post.titulo}</h3>
-                <div class="post-content">${post.conteudo.replace(/\n/g, '<br>')}</div>
-                ${audioHtml}
-                <div class="post-actions">
-                    <button class="action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})"><i class="fa-${isLiked ? 'solid' : 'regular'} fa-heart"></i> ${post.curtidas?.length || 0}</button>
-                    <button class="action-btn" onclick="toggleComments(${post.id})"><i class="far fa-comment"></i> ${post.comentarios?.length || 0}</button>
-                </div>
-                <div id="comments-${post.id}" style="display: none; margin-top: 16px;">
-                    <div class="comment-list">${commentsHtml || '<p style="opacity:0.6;">Nenhum comentário ainda</p>'}</div>
-                    <div style="display: flex; gap: 8px; margin-top: 12px;">
-                        <input type="text" id="commentInput-${post.id}" placeholder="Escreva um comentário..." style="flex:1; padding: 10px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 40px; color: white;">
-                        <button onclick="addComment(${post.id})" style="background: var(--accent); border: none; padding: 0 20px; border-radius: 40px; cursor: pointer;">Enviar</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
+    container.innerHTML = paginatedPosts.map(post => renderPostCard(post)).join('');
+    
+    if (hasMore) {
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.className = 'load-more-btn';
+        loadMoreBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Carregar mais publicações';
+        loadMoreBtn.onclick = () => {
+            currentPagePosts += postsToShow;
+            renderCurrentPage();
+        };
+        container.appendChild(loadMoreBtn);
+    }
+    
+    // Atualizar currentPagePosts para o próximo carregamento
+    currentPagePosts = paginatedPosts.length;
 }
 
-window.deletePost = function(postId) {
-    if (confirm('Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita.')) {
-        DB.deletePost(postId);
-        renderCurrentPage();
-        Notifications.create(currentUser.id, 'system', 'Você excluiu uma publicação', postId);
+function renderPostCard(post) {
+    const author = DB.getUserById(post.userId);
+    const badgeClass = `badge-${post.tipo}`;
+    const badgeName = { 'pensamento': '💭 Pensamento', 'tese': '📚 Tese', 'diario': '📓 Diário', 'jornal': '📰 Notícia', 'audio': '🎙️ Áudio' }[post.tipo];
+    const isLiked = post.curtidas && post.curtidas.includes(currentUser.id);
+    const isSaved = DB.isPostSaved(currentUser.id, post.id);
+    const timeAgo = getTimeAgo(post.data);
+    const isAdmin = Auth.isAdmin();
+    
+    let audioHtml = '';
+    if (post.audioData) {
+        audioHtml = `<div style="margin: 12px 0;"><button onclick="playAudio('${post.audioData}')" class="action-btn"><i class="fas fa-play"></i> Ouvir áudio</button></div>`;
     }
-};
+    
+    let imageHtml = '';
+    if (post.imagem) {
+        imageHtml = `<img src="${post.imagem}" class="post-image" onclick="viewFullImage('${post.imagem}')">`;
+    }
+    
+    let hashtagsHtml = '';
+    if (post.hashtags && post.hashtags.length > 0) {
+        hashtagsHtml = `<div class="post-hashtags">${post.hashtags.map(tag => `<span class="hashtag" onclick="searchHashtag('${tag}')">#${tag}</span>`).join('')}</div>`;
+    }
+    
+    const editHtml = (isAdmin || post.userId === currentUser.id) ? 
+        `<button class="edit-btn" onclick="editPost(${post.id})"><i class="fas fa-edit"></i> Editar</button>` : '';
+    
+    const deleteHtml = (isAdmin || post.userId === currentUser.id) ? 
+        `<button class="delete-btn" onclick="deletePost(${post.id})"><i class="fas fa-trash"></i> Excluir</button>` : '';
+    
+    const commentsHtml = (post.comentarios || []).map(c => `
+        <div style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+            <strong>${c.username}</strong>: ${c.texto}
+            <div style="font-size: 0.6rem; color: var(--text-secondary);">${getTimeAgo(c.data)}</div>
+        </div>
+    `).join('');
+    
+    const verifiedBadge = author?.isVerified ? '<i class="fas fa-check-circle verified-icon"></i>' : '';
+    
+    return `
+        <div class="post-card" data-post-id="${post.id}">
+            <div class="post-header">
+                <div class="post-avatar">
+                    ${author?.avatar ? `<img src="${author.avatar}">` : `<span>${author?.emoji || '📝'}</span>`}
+                </div>
+                <div class="post-author-info">
+                    <div class="post-author">${author?.name || 'Usuário'} ${verifiedBadge}</div>
+                    <div class="post-time">${timeAgo} ${post.editado ? '(editado)' : ''}</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    ${editHtml}
+                    ${deleteHtml}
+                </div>
+            </div>
+            <div class="post-badge ${badgeClass}">${badgeName}</div>
+            <h3 class="post-title">${post.emoji || '📝'} ${escapeHtml(post.titulo)}</h3>
+            <div class="post-content">${escapeHtml(post.conteudo).replace(/\n/g, '<br>')}</div>
+            ${imageHtml}
+            ${hashtagsHtml}
+            ${audioHtml}
+            <div class="post-actions">
+                <button class="action-btn ${isLiked ? 'liked' : ''}" onclick="toggleLike(${post.id})">
+                    <i class="fa-${isLiked ? 'solid' : 'regular'} fa-heart"></i> ${post.curtidas?.length || 0}
+                </button>
+                <button class="action-btn" onclick="toggleComments(${post.id})">
+                    <i class="far fa-comment"></i> ${post.comentarios?.length || 0}
+                </button>
+                <button class="action-btn ${isSaved ? 'saved' : ''}" onclick="toggleSavePost(${post.id})">
+                    <i class="fa-${isSaved ? 'solid' : 'regular'} fa-bookmark"></i> Salvar
+                </button>
+                <button class="action-btn" onclick="sharePost('${post.titulo}', '${post.conteudo.substring(0, 100)}', window.location.href)">
+                    <i class="far fa-share-square"></i> Compartilhar
+                </button>
+                <button class="action-btn" onclick="copyToClipboard(window.location.href + '?post=${post.id}')">
+                    <i class="far fa-copy"></i> Copiar link
+                </button>
+            </div>
+            <div id="comments-${post.id}" style="display: none; margin-top: 16px;">
+                <div class="comment-list">${commentsHtml || '<p style="opacity:0.6;">Nenhum comentário ainda</p>'}</div>
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <input type="text" id="commentInput-${post.id}" placeholder="Escreva um comentário..." style="flex:1; padding: 10px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 40px; color: white;">
+                    <button onclick="addComment(${post.id})" style="background: var(--accent); border: none; padding: 0 20px; border-radius: 40px; cursor: pointer;">Enviar</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 function renderSuggestions() {
     const users = DB.getUsers();
@@ -239,13 +370,14 @@ function renderDMList() {
                 <div class="dm-avatar">${user?.avatar ? `<img src="${user.avatar}">` : user?.emoji || '📝'}</div>
                 <div class="dm-info">
                     <div class="dm-name">${user?.name}</div>
-                    <div class="dm-preview">${chat.lastMessage.substring(0, 40)}</div>
+                    <div class="dm-preview">${escapeHtml(chat.lastMessage.substring(0, 40))}</div>
                 </div>
             </div>
         `;
     }).join('');
 }
 
+// ===== FUNÇÕES DE INTERAÇÃO =====
 window.toggleLike = function(postId) {
     const posts = DB.getPosts();
     const post = posts.find(p => p.id === postId);
@@ -266,6 +398,17 @@ window.toggleLike = function(postId) {
     }
 };
 
+window.toggleSavePost = function(postId) {
+    if (DB.isPostSaved(currentUser.id, postId)) {
+        DB.unsavePost(currentUser.id, postId);
+        showToast('❌ Post removido dos salvos');
+    } else {
+        DB.savePost(currentUser.id, postId);
+        showToast('✅ Post salvo nos favoritos');
+    }
+    renderCurrentPage();
+};
+
 window.toggleComments = function(postId) {
     const div = document.getElementById(`comments-${postId}`);
     if (div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
@@ -281,11 +424,16 @@ window.addComment = function(postId) {
     
     if (post) {
         if (!post.comentarios) post.comentarios = [];
-        post.comentarios.push({ userId: currentUser.id, username: currentUser.name, texto: text, data: new Date().toISOString() });
+        post.comentarios.push({ 
+            userId: currentUser.id, 
+            username: currentUser.name, 
+            texto: text, 
+            data: new Date().toISOString() 
+        });
         DB.savePosts(posts);
         
         if (post.userId !== currentUser.id) {
-            Notifications.create(post.userId, 'comment', `${currentUser.name} comentou no seu post "${post.titulo.substring(0, 30)}"`, postId);
+            Notifications.create(post.userId, 'comment', `${currentUser.name} comentou no seu post`, postId);
         }
         input.value = '';
         renderCurrentPage();
@@ -296,13 +444,73 @@ window.followUser = function(userId) {
     DB.followUser(currentUser.id, userId);
     renderSuggestions();
     renderCurrentPage();
+    showToast(`✅ Agora você segue ${DB.getUserById(userId).name}`);
 };
 
 window.playAudio = function(audioData) {
     const audio = new Audio(audioData);
     audio.play();
+    showToast('🎤 Reproduzindo áudio...');
 };
 
+window.deletePost = function(postId) {
+    if (confirm('Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita.')) {
+        DB.deletePost(postId);
+        renderCurrentPage();
+        showToast('🗑️ Publicação excluída');
+    }
+};
+
+window.editPost = function(postId) {
+    const posts = DB.getPosts();
+    const post = posts.find(p => p.id === postId);
+    
+    if (post) {
+        editingPostId = postId;
+        document.getElementById('postTitleInput').value = post.titulo;
+        document.getElementById('postContentInput').value = post.conteudo;
+        document.getElementById('postEmojiInput').value = post.emoji || '';
+        document.getElementById('hashtagsInput').value = post.hashtags ? post.hashtags.join(', ') : '';
+        
+        if (post.imagem) {
+            document.getElementById('postImagePreview').src = post.imagem;
+            document.getElementById('postImagePreview').style.display = 'block';
+            selectedImage = post.imagem;
+        }
+        
+        openPostModal();
+        document.getElementById('publishPostBtn').textContent = '✏️ Atualizar publicação';
+    }
+};
+
+window.searchHashtag = function(hashtag) {
+    currentSearchTerm = '#' + hashtag;
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '#' + hashtag;
+    currentPage = 'feed';
+    renderCurrentPage();
+    showToast(`🔍 Buscando por #${hashtag}`);
+};
+
+window.viewFullImage = function(imageUrl) {
+    const modal = document.createElement('div');
+    modal.style.position = 'fixed';
+    modal.style.top = '0';
+    modal.style.left = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.background = 'rgba(0,0,0,0.9)';
+    modal.style.zIndex = '3000';
+    modal.style.display = 'flex';
+    modal.style.alignItems = 'center';
+    modal.style.justifyContent = 'center';
+    modal.style.cursor = 'pointer';
+    modal.innerHTML = `<img src="${imageUrl}" style="max-width: 90%; max-height: 90%; border-radius: 16px;">`;
+    modal.onclick = () => modal.remove();
+    document.body.appendChild(modal);
+};
+
+// ===== FUNÇÕES DE DM =====
 window.openDM = function(userId) {
     currentDMTarget = userId;
     const user = DB.getUserById(userId);
@@ -317,7 +525,9 @@ function renderDMMessages(userId) {
     
     container.innerHTML = messages.map(msg => `
         <div style="text-align: ${msg.from === currentUser.id ? 'right' : 'left'}; margin-bottom: 12px;">
-            <div style="background: ${msg.from === currentUser.id ? 'var(--accent)' : 'var(--bg-hover)'}; display: inline-block; padding: 10px 16px; border-radius: 20px; max-width: 80%;">${msg.message}</div>
+            <div style="background: ${msg.from === currentUser.id ? 'var(--accent)' : 'var(--bg-hover)'}; display: inline-block; padding: 10px 16px; border-radius: 20px; max-width: 80%;">
+                ${escapeHtml(msg.message)}
+            </div>
             <div style="font-size: 0.65rem; opacity: 0.6; margin-top: 4px;">${new Date(msg.time).toLocaleTimeString()}</div>
         </div>
     `).join('');
@@ -340,17 +550,24 @@ function openNewChatModal() {
     if (username) {
         const user = DB.getUserByUsername(username);
         if (user) openDM(user.id);
-        else alert('Usuário não encontrado');
+        else showToast('❌ Usuário não encontrado');
     }
 }
 
+// ===== POSTAGEM =====
 function openPostModal() {
     document.getElementById('postModal').classList.add('open');
-    document.getElementById('postTitleInput').value = '';
-    document.getElementById('postContentInput').value = '';
-    document.getElementById('postEmojiInput').value = '';
-    document.getElementById('audioPreviewArea').innerHTML = '';
-    document.getElementById('audioDataField').value = '';
+    if (!editingPostId) {
+        document.getElementById('postTitleInput').value = '';
+        document.getElementById('postContentInput').value = '';
+        document.getElementById('postEmojiInput').value = '';
+        document.getElementById('hashtagsInput').value = '';
+        document.getElementById('postImagePreview').style.display = 'none';
+        document.getElementById('audioPreviewArea').innerHTML = '';
+        document.getElementById('audioDataField').value = '';
+        selectedImage = null;
+        document.getElementById('publishPostBtn').textContent = 'Publicar';
+    }
 }
 
 function setupAudioRecording() {
@@ -375,8 +592,9 @@ function setupAudioRecording() {
             mediaRecorder.start();
             startBtn.style.display = 'none';
             stopBtn.style.display = 'block';
+            showToast('🎙️ Gravando... fale à vontade');
         } catch(err) {
-            alert('Permita acesso ao microfone para gravar áudio');
+            showToast('❌ Permita acesso ao microfone');
         }
     });
     
@@ -385,6 +603,7 @@ function setupAudioRecording() {
             mediaRecorder.stop();
             startBtn.style.display = 'block';
             stopBtn.style.display = 'none';
+            showToast('⏹️ Gravação finalizada');
         }
     });
 }
@@ -394,32 +613,60 @@ function publishPost() {
     const conteudo = document.getElementById('postContentInput').value.trim();
     const emoji = document.getElementById('postEmojiInput').value.trim();
     const audioData = document.getElementById('audioDataField').value;
+    const hashtagsInput = document.getElementById('hashtagsInput')?.value || '';
+    const hashtags = hashtagsInput.split(',').map(tag => tag.trim().replace('#', '')).filter(tag => tag);
     
     if (!titulo || !conteudo) {
-        alert('Preencha título e conteúdo');
+        showToast('❌ Preencha título e conteúdo');
         return;
     }
     
-    const newPost = {
-        id: Date.now(),
-        userId: currentUser.id,
-        tipo: selectedPostType,
-        titulo: titulo,
-        conteudo: conteudo,
-        emoji: emoji || null,
-        audioData: selectedPostType === 'audio' ? audioData : null,
-        data: new Date().toISOString(),
-        curtidas: [],
-        comentarios: []
-    };
+    if (editingPostId) {
+        const updates = {
+            titulo: titulo,
+            conteudo: conteudo,
+            emoji: emoji || null,
+            hashtags: hashtags,
+            editado: true
+        };
+        if (selectedImage) updates.imagem = selectedImage;
+        if (selectedPostType === 'audio' && audioData) updates.audioData = audioData;
+        
+        DB.updatePost(editingPostId, updates);
+        showToast('✏️ Publicação atualizada!');
+        editingPostId = null;
+    } else {
+        const newPost = {
+            id: Date.now(),
+            userId: currentUser.id,
+            tipo: selectedPostType,
+            titulo: titulo,
+            conteudo: conteudo,
+            emoji: emoji || null,
+            imagem: selectedImage || null,
+            hashtags: hashtags,
+            audioData: selectedPostType === 'audio' ? audioData : null,
+            data: new Date().toISOString(),
+            curtidas: [],
+            comentarios: [],
+            editado: false
+        };
+        DB.addPost(newPost);
+        showToast('✅ Publicação criada!');
+    }
     
-    DB.addPost(newPost);
     document.getElementById('postModal').classList.remove('open');
     document.getElementById('postTitleInput').value = '';
     document.getElementById('postContentInput').value = '';
     document.getElementById('postEmojiInput').value = '';
+    document.getElementById('hashtagsInput').value = '';
     document.getElementById('audioPreviewArea').innerHTML = '';
     document.getElementById('audioDataField').value = '';
+    document.getElementById('postImagePreview').style.display = 'none';
+    selectedImage = null;
+    document.getElementById('publishPostBtn').textContent = 'Publicar';
+    
+    currentPagePosts = 0;
     renderCurrentPage();
 }
 
@@ -437,12 +684,6 @@ function getTimeAgo(dateString) {
     return date.toLocaleDateString('pt-BR');
 }
 
-let darkMode = false;
-function toggleDarkMode() {
-    darkMode = !darkMode;
-    document.body.style.background = darkMode ? '#1a1a2e' : '#0a0a0a';
-}
-
 function startRealtimeUpdates() {
     setInterval(() => {
         if (document.visibilityState === 'visible') {
@@ -451,13 +692,21 @@ function startRealtimeUpdates() {
             Notifications.renderList();
             Notifications.updateBadge();
         }
-    }, 5000);
+    }, 10000);
 }
 
+// Exportar funções globais
 window.toggleLike = toggleLike;
+window.toggleSavePost = toggleSavePost;
 window.toggleComments = toggleComments;
 window.addComment = addComment;
 window.followUser = followUser;
 window.playAudio = playAudio;
 window.openDM = openDM;
 window.deletePost = deletePost;
+window.editPost = editPost;
+window.searchHashtag = searchHashtag;
+window.viewFullImage = viewFullImage;
+window.sharePost = sharePost;
+window.copyToClipboard = copyToClipboard;
+window.showToast = showToast;

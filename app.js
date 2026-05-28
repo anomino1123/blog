@@ -1,6 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - APP PRINCIPAL
-// Versão 2.0 - Com todas as funcionalidades
+// Versão Instagram - Feed personalizado por seguidores
 // ============================================
 
 let currentUser = null;
@@ -16,6 +16,7 @@ let isLoading = false;
 let postsToShow = 10;
 let editingPostId = null;
 let selectedImage = null;
+let viewingProfileId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     currentUser = DB.getCurrentUser();
@@ -60,7 +61,9 @@ function setupEventListeners() {
         btn.addEventListener('click', function() {
             const page = this.dataset.page;
             if (page === 'meu-perfil') {
-                window.location.href = 'perfil.html';
+                showProfile(currentUser.id);
+            } else if (page === 'salvos') {
+                showSavedPosts();
             } else if (page) {
                 changePage(page);
             }
@@ -95,17 +98,16 @@ function setupEventListeners() {
     document.getElementById('sendDmBtn').addEventListener('click', sendDirectMessage);
     document.getElementById('newChatBtn').addEventListener('click', openNewChatModal);
     
-    // Upload de imagem
     setupImageUpload('postImageInput', 'postImagePreview', (imageData) => {
         selectedImage = imageData;
     });
     
-    // Contador de caracteres
     initCharCounter('postContentInput', 'charCounter');
 }
 
 function changePage(page) {
     currentPage = page;
+    viewingProfileId = null;
     currentPagePosts = 0;
     currentFilter = 'all';
     
@@ -117,7 +119,14 @@ function changePage(page) {
         }
     });
     
-    const titles = { 'feed': 'Início', 'teses': 'Teses', 'diario': 'Diário', 'jornal': 'Notícias', 'audio': 'Áudios' };
+    const titles = { 
+        'feed': 'Início', 
+        'teses': 'Teses', 
+        'diario': 'Diário', 
+        'jornal': 'Notícias', 
+        'audio': 'Áudios',
+        'salvos': 'Posts Salvos'
+    };
     document.getElementById('pageTitle').textContent = titles[page] || 'Repórter da Periferia';
     renderCurrentPage();
 }
@@ -129,8 +138,67 @@ function setupSearch() {
     searchInput.addEventListener('input', (e) => {
         currentSearchTerm = e.target.value.toLowerCase();
         currentPagePosts = 0;
-        renderCurrentPage();
+        
+        // Se tiver termo de busca, mostrar resultados de busca
+        if (currentSearchTerm) {
+            renderSearchResults();
+        } else {
+            renderCurrentPage();
+        }
     });
+}
+
+function renderSearchResults() {
+    const allPosts = DB.getPosts();
+    const allUsers = DB.getUsers();
+    
+    // Buscar em posts
+    const postsResults = allPosts.filter(post => 
+        post.titulo.toLowerCase().includes(currentSearchTerm) ||
+        post.conteudo.toLowerCase().includes(currentSearchTerm) ||
+        (post.hashtags && post.hashtags.some(tag => tag.toLowerCase().includes(currentSearchTerm)))
+    );
+    
+    // Buscar em usuários
+    const usersResults = allUsers.filter(user => 
+        user.id !== currentUser.id &&
+        (user.name.toLowerCase().includes(currentSearchTerm) ||
+         user.username.toLowerCase().includes(currentSearchTerm))
+    );
+    
+    const container = document.getElementById('feedContainer');
+    
+    let html = '';
+    
+    if (usersResults.length > 0) {
+        html += `<h3 style="margin: 20px 0 10px; font-size: 1rem;"><i class="fas fa-users"></i> Pessoas</h3>`;
+        html += usersResults.map(user => `
+            <div class="suggestion-item" style="background: var(--bg-card); margin-bottom: 10px;" onclick="showProfile(${user.id})">
+                <div class="suggestion-avatar">${user.avatar ? `<img src="${user.avatar}">` : user.emoji || '📝'}</div>
+                <div class="suggestion-info">
+                    <div class="suggestion-name">${user.name} ${user.isVerified ? '<i class="fas fa-check-circle" style="color:#3b82f6; font-size:0.7rem;"></i>' : ''}</div>
+                    <div class="suggestion-bio">@${user.username} • ${user.followers?.length || 0} seguidores</div>
+                </div>
+                <button class="follow-btn" onclick="event.stopPropagation(); followUser(${user.id})">
+                    ${currentUser.following.includes(user.id) ? 'Seguindo' : 'Seguir'}
+                </button>
+            </div>
+        `).join('');
+    }
+    
+    if (postsResults.length > 0) {
+        html += `<h3 style="margin: 20px 0 10px; font-size: 1rem;"><i class="fas fa-newspaper"></i> Publicações</h3>`;
+        html += postsResults.map(post => renderPostCard(post)).join('');
+    }
+    
+    if (usersResults.length === 0 && postsResults.length === 0) {
+        html = `<div class="placeholder" style="padding: 60px; text-align: center;">
+            <i class="fas fa-search" style="font-size: 3rem; opacity: 0.3;"></i>
+            <p style="margin-top: 16px;">Nenhum resultado encontrado para "${currentSearchTerm}"</p>
+        </div>`;
+    }
+    
+    container.innerHTML = html;
 }
 
 function setupFilters() {
@@ -146,51 +214,63 @@ function setupFilters() {
     });
 }
 
-function getFilteredPosts(posts) {
-    let filtered = [...posts];
-    
-    // Filtrar por tipo de post
-    if (currentFilter !== 'all') {
-        filtered = filtered.filter(p => p.tipo === currentFilter);
-    }
-    
-    // Filtrar por busca
-    if (currentSearchTerm) {
-        filtered = filtered.filter(p => 
-            p.titulo.toLowerCase().includes(currentSearchTerm) ||
-            p.conteudo.toLowerCase().includes(currentSearchTerm) ||
-            (p.hashtags && p.hashtags.some(tag => tag.toLowerCase().includes(currentSearchTerm)))
-        );
-    }
-    
-    // Ordenar por data (mais recentes primeiro)
-    filtered.sort((a, b) => new Date(b.data) - new Date(a.data));
-    
-    return filtered;
-}
-
+// ============================================
+// FUNÇÃO PRINCIPAL DO FEED (ESTILO INSTAGRAM)
+// Mostra posts de quem o usuário SEGUE
+// ============================================
 function renderCurrentPage() {
     let posts = DB.getPosts();
     
-    switch(currentPage) {
-        case 'feed':
-            posts = posts.filter(p => currentUser.following.includes(p.userId) || p.userId === currentUser.id);
-            break;
-        case 'teses':
-            posts = posts.filter(p => p.tipo === 'tese');
-            break;
-        case 'diario':
-            posts = posts.filter(p => p.tipo === 'diario');
-            break;
-        case 'jornal':
-            posts = posts.filter(p => p.tipo === 'jornal');
-            break;
-        case 'audio':
-            posts = posts.filter(p => p.tipo === 'audio');
-            break;
+    // Se estiver vendo perfil de outro usuário
+    if (viewingProfileId) {
+        posts = posts.filter(p => p.userId === viewingProfileId);
+        const profileUser = DB.getUserById(viewingProfileId);
+        document.getElementById('pageTitle').innerHTML = `
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button onclick="changePage('feed')" style="background: none; border: none; color: var(--accent); cursor: pointer;">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                ${profileUser?.name || 'Perfil'}
+            </div>
+        `;
+    } 
+    // Feed principal - mostra apenas posts de quem o usuário SEGUE + seus próprios posts
+    else if (currentPage === 'feed') {
+        posts = posts.filter(p => 
+            currentUser.following.includes(p.userId) || p.userId === currentUser.id
+        );
+    }
+    // Página de posts salvos
+    else if (currentPage === 'salvos') {
+        const savedIds = DB.getSavedPosts(currentUser.id);
+        posts = posts.filter(p => savedIds.includes(p.id));
+    }
+    // Páginas de categorias
+    else {
+        switch(currentPage) {
+            case 'teses':
+                posts = posts.filter(p => p.tipo === 'tese');
+                break;
+            case 'diario':
+                posts = posts.filter(p => p.tipo === 'diario');
+                break;
+            case 'jornal':
+                posts = posts.filter(p => p.tipo === 'jornal');
+                break;
+            case 'audio':
+                posts = posts.filter(p => p.tipo === 'audio');
+                break;
+        }
     }
     
-    posts = getFilteredPosts(posts);
+    // Aplicar filtros de categoria (se não for perfil)
+    if (!viewingProfileId && currentFilter !== 'all' && currentPage !== 'salvos') {
+        posts = posts.filter(p => p.tipo === currentFilter);
+    }
+    
+    // Ordenar por data (mais recentes primeiro)
+    posts.sort((a, b) => new Date(b.data) - new Date(a.data));
+    
     renderFeedWithPagination(posts);
 }
 
@@ -200,11 +280,36 @@ function renderFeedWithPagination(allPosts) {
     const hasMore = paginatedPosts.length < allPosts.length;
     
     if (paginatedPosts.length === 0 && currentPagePosts === 0) {
-        container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;">
-            <i class="fas fa-newspaper" style="font-size: 3rem; opacity: 0.3;"></i>
-            <p style="margin-top: 16px;">Nenhuma publicação encontrada.</p>
-            <p style="font-size: 0.8rem;">Clique no botão + para começar!</p>
-        </div>`;
+        let emptyMessage = '';
+        if (viewingProfileId) {
+            const profileUser = DB.getUserById(viewingProfileId);
+            emptyMessage = `<div class="placeholder" style="padding: 60px; text-align: center;">
+                <i class="fas fa-newspaper" style="font-size: 3rem; opacity: 0.3;"></i>
+                <p style="margin-top: 16px;">${profileUser?.name || 'Usuário'} ainda não publicou nada.</p>
+            </div>`;
+        } else if (currentPage === 'feed') {
+            emptyMessage = `<div class="placeholder" style="padding: 60px; text-align: center;">
+                <i class="fas fa-rss" style="font-size: 3rem; opacity: 0.3;"></i>
+                <p style="margin-top: 16px;">Seu feed está vazio!</p>
+                <p style="font-size: 0.8rem;">Siga outras pessoas para ver publicações aqui.</p>
+                <button onclick="document.getElementById('suggestionsList').scrollIntoView({behavior: 'smooth'})" style="margin-top: 16px; background: var(--accent); border: none; padding: 10px 24px; border-radius: 40px; color: white; cursor: pointer;">
+                    <i class="fas fa-user-plus"></i> Descobrir pessoas
+                </button>
+            </div>`;
+        } else if (currentPage === 'salvos') {
+            emptyMessage = `<div class="placeholder" style="padding: 60px; text-align: center;">
+                <i class="fas fa-bookmark" style="font-size: 3rem; opacity: 0.3;"></i>
+                <p style="margin-top: 16px;">Você ainda não salvou nenhum post.</p>
+                <p style="font-size: 0.8rem;">Clique no ícone de bookmark nos posts para salvá-los.</p>
+            </div>`;
+        } else {
+            emptyMessage = `<div class="placeholder" style="padding: 60px; text-align: center;">
+                <i class="fas fa-newspaper" style="font-size: 3rem; opacity: 0.3;"></i>
+                <p style="margin-top: 16px;">Nenhuma publicação encontrada.</p>
+                <p style="font-size: 0.8rem;">Clique no botão + para começar!</p>
+            </div>`;
+        }
+        container.innerHTML = emptyMessage;
         return;
     }
     
@@ -221,18 +326,27 @@ function renderFeedWithPagination(allPosts) {
         container.appendChild(loadMoreBtn);
     }
     
-    // Atualizar currentPagePosts para o próximo carregamento
     currentPagePosts = paginatedPosts.length;
 }
 
 function renderPostCard(post) {
     const author = DB.getUserById(post.userId);
+    if (!author) return '';
+    
     const badgeClass = `badge-${post.tipo}`;
-    const badgeName = { 'pensamento': '💭 Pensamento', 'tese': '📚 Tese', 'diario': '📓 Diário', 'jornal': '📰 Notícia', 'audio': '🎙️ Áudio' }[post.tipo];
+    const badgeName = { 
+        'pensamento': '💭 Pensamento', 
+        'tese': '📚 Tese', 
+        'diario': '📓 Diário', 
+        'jornal': '📰 Notícia', 
+        'audio': '🎙️ Áudio' 
+    }[post.tipo];
+    
     const isLiked = post.curtidas && post.curtidas.includes(currentUser.id);
     const isSaved = DB.isPostSaved(currentUser.id, post.id);
     const timeAgo = getTimeAgo(post.data);
     const isAdmin = Auth.isAdmin();
+    const isFollowing = currentUser.following.includes(author.id);
     
     let audioHtml = '';
     if (post.audioData) {
@@ -255,23 +369,28 @@ function renderPostCard(post) {
     const deleteHtml = (isAdmin || post.userId === currentUser.id) ? 
         `<button class="delete-btn" onclick="deletePost(${post.id})"><i class="fas fa-trash"></i> Excluir</button>` : '';
     
-    const commentsHtml = (post.comentarios || []).map(c => `
+    const commentsHtml = (post.comentarios || []).slice(0, 3).map(c => `
         <div style="padding: 8px 0; border-bottom: 1px solid var(--border);">
-            <strong>${c.username}</strong>: ${c.texto}
+            <strong>${c.username}</strong>: ${escapeHtml(c.texto)}
             <div style="font-size: 0.6rem; color: var(--text-secondary);">${getTimeAgo(c.data)}</div>
         </div>
     `).join('');
     
-    const verifiedBadge = author?.isVerified ? '<i class="fas fa-check-circle verified-icon"></i>' : '';
+    const hasMoreComments = (post.comentarios?.length || 0) > 3;
+    
+    const verifiedBadge = author.isVerified ? '<i class="fas fa-check-circle verified-icon"></i>' : '';
     
     return `
         <div class="post-card" data-post-id="${post.id}">
             <div class="post-header">
-                <div class="post-avatar">
-                    ${author?.avatar ? `<img src="${author.avatar}">` : `<span>${author?.emoji || '📝'}</span>`}
+                <div class="post-avatar" onclick="showProfile(${author.id})" style="cursor: pointer;">
+                    ${author.avatar ? `<img src="${author.avatar}">` : `<span>${author.emoji || '📝'}</span>`}
                 </div>
                 <div class="post-author-info">
-                    <div class="post-author">${author?.name || 'Usuário'} ${verifiedBadge}</div>
+                    <div class="post-author" onclick="showProfile(${author.id})" style="cursor: pointer;">
+                        ${author.name} ${verifiedBadge}
+                        ${!isFollowing && author.id !== currentUser.id ? `<span style="font-size: 0.7rem; color: var(--accent); margin-left: 5px;" onclick="event.stopPropagation(); followUser(${author.id})">• Seguir</span>` : ''}
+                    </div>
                     <div class="post-time">${timeAgo} ${post.editado ? '(editado)' : ''}</div>
                 </div>
                 <div style="display: flex; gap: 8px;">
@@ -293,19 +412,19 @@ function renderPostCard(post) {
                     <i class="far fa-comment"></i> ${post.comentarios?.length || 0}
                 </button>
                 <button class="action-btn ${isSaved ? 'saved' : ''}" onclick="toggleSavePost(${post.id})">
-                    <i class="fa-${isSaved ? 'solid' : 'regular'} fa-bookmark"></i> Salvar
+                    <i class="fa-${isSaved ? 'solid' : 'regular'} fa-bookmark"></i>
                 </button>
-                <button class="action-btn" onclick="sharePost('${post.titulo}', '${post.conteudo.substring(0, 100)}', window.location.href)">
-                    <i class="far fa-share-square"></i> Compartilhar
-                </button>
-                <button class="action-btn" onclick="copyToClipboard(window.location.href + '?post=${post.id}')">
-                    <i class="far fa-copy"></i> Copiar link
+                <button class="action-btn" onclick="sharePost('${post.titulo.replace(/'/g, "\\'")}', window.location.href)">
+                    <i class="far fa-share-square"></i>
                 </button>
             </div>
             <div id="comments-${post.id}" style="display: none; margin-top: 16px;">
-                <div class="comment-list">${commentsHtml || '<p style="opacity:0.6;">Nenhum comentário ainda</p>'}</div>
+                <div class="comment-list">
+                    ${commentsHtml}
+                    ${hasMoreComments ? `<div style="padding: 8px 0; color: var(--accent); cursor: pointer; font-size: 0.8rem;" onclick="loadAllComments(${post.id})">Ver todos os ${post.comentarios?.length} comentários</div>` : ''}
+                </div>
                 <div style="display: flex; gap: 8px; margin-top: 12px;">
-                    <input type="text" id="commentInput-${post.id}" placeholder="Escreva um comentário..." style="flex:1; padding: 10px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 40px; color: white;">
+                    <input type="text" id="commentInput-${post.id}" placeholder="Adicione um comentário..." style="flex:1; padding: 10px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 40px; color: white;">
                     <button onclick="addComment(${post.id})" style="background: var(--accent); border: none; padding: 0 20px; border-radius: 40px; cursor: pointer;">Enviar</button>
                 </div>
             </div>
@@ -313,30 +432,134 @@ function renderPostCard(post) {
     `;
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+// Mostrar perfil de um usuário
+function showProfile(userId) {
+    viewingProfileId = userId;
+    currentPage = 'profile';
+    currentPagePosts = 0;
+    
+    const profileUser = DB.getUserById(userId);
+    
+    // Atualizar título
+    document.getElementById('pageTitle').innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <button onclick="changePage('feed')" style="background: none; border: none; color: var(--accent); cursor: pointer;">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            ${profileUser?.name || 'Perfil'}
+        </div>
+    `;
+    
+    // Destacar botão ativo
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    renderProfilePage(userId);
+}
+
+function renderProfilePage(userId) {
+    const profileUser = DB.getUserById(userId);
+    if (!profileUser) return;
+    
+    const userPosts = DB.getPosts().filter(p => p.userId === userId);
+    const isOwnProfile = userId === currentUser.id;
+    const isFollowing = currentUser.following.includes(userId);
+    
+    const container = document.getElementById('feedContainer');
+    
+    container.innerHTML = `
+        <div class="profile-header-card" style="background: var(--bg-card); border-radius: 24px; padding: 24px; margin-bottom: 24px; text-align: center;">
+            <div class="profile-avatar-large" style="width: 100px; height: 100px; margin: 0 auto 16px; background: linear-gradient(135deg, var(--accent), var(--accent-hover)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; overflow: hidden;">
+                ${profileUser.avatar ? `<img src="${profileUser.avatar}" style="width:100%;height:100%;object-fit:cover;">` : profileUser.emoji || '🧠'}
+            </div>
+            <h2>${profileUser.name} ${profileUser.isVerified ? '<i class="fas fa-check-circle" style="color:#3b82f6;"></i>' : ''}</h2>
+            <p style="color: var(--text-secondary);">@${profileUser.username}</p>
+            <p style="margin: 12px 0;">${profileUser.bio || 'Sem bio ainda'}</p>
+            <div style="display: flex; justify-content: center; gap: 32px; margin: 20px 0;">
+                <div><strong>${profileUser.followers?.length || 0}</strong><br><span style="font-size: 0.7rem;">Seguidores</span></div>
+                <div><strong>${profileUser.following?.length || 0}</strong><br><span style="font-size: 0.7rem;">Seguindo</span></div>
+                <div><strong>${userPosts.length}</strong><br><span style="font-size: 0.7rem;">Publicações</span></div>
+            </div>
+            ${!isOwnProfile ? `
+                <button class="follow-profile-btn" onclick="followUser(${profileUser.id})" style="background: ${isFollowing ? 'transparent' : 'var(--accent)'}; border: ${isFollowing ? '1px solid var(--accent)' : 'none'}; color: ${isFollowing ? 'var(--accent)' : 'white'}; padding: 10px 24px; border-radius: 40px; cursor: pointer; margin-top: 8px;">
+                    ${isFollowing ? '<i class="fas fa-check"></i> Seguindo' : '<i class="fas fa-user-plus"></i> Seguir'}
+                </button>
+            ` : `
+                <button onclick="window.location.href='perfil.html'" style="background: transparent; border: 1px solid var(--accent); color: var(--accent); padding: 10px 24px; border-radius: 40px; cursor: pointer;">
+                    <i class="fas fa-edit"></i> Editar perfil
+                </button>
+            `}
+        </div>
+        <h3 style="margin: 20px 0 16px;">Publicações</h3>
+        <div id="profilePostsContainer"></div>
+    `;
+    
+    // Renderizar posts do perfil
+    const postsContainer = document.getElementById('profilePostsContainer');
+    if (userPosts.length === 0) {
+        postsContainer.innerHTML = '<div class="placeholder" style="text-align: center; padding: 40px;">Nenhuma publicação ainda</div>';
+    } else {
+        postsContainer.innerHTML = userPosts.sort((a,b) => new Date(b.data) - new Date(a.data)).map(post => renderPostCard(post)).join('');
+    }
+}
+
+function showSavedPosts() {
+    currentPage = 'salvos';
+    viewingProfileId = null;
+    currentPagePosts = 0;
+    
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+        if (btn.dataset.page === 'salvos') {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    document.getElementById('pageTitle').textContent = 'Posts Salvos';
+    renderCurrentPage();
+}
+
+function loadAllComments(postId) {
+    const post = DB.getPosts().find(p => p.id === postId);
+    if (!post) return;
+    
+    const commentsDiv = document.getElementById(`comments-${postId}`);
+    const commentList = commentsDiv?.querySelector('.comment-list');
+    
+    if (commentList && post.comentarios) {
+        commentList.innerHTML = post.comentarios.map(c => `
+            <div style="padding: 8px 0; border-bottom: 1px solid var(--border);">
+                <strong>${c.username}</strong>: ${escapeHtml(c.texto)}
+                <div style="font-size: 0.6rem; color: var(--text-secondary);">${getTimeAgo(c.data)}</div>
+            </div>
+        `).join('');
+    }
 }
 
 function renderSuggestions() {
     const users = DB.getUsers();
-    const suggestions = users.filter(u => u.id !== currentUser.id && !currentUser.following.includes(u.id));
+    // Sugerir pessoas que o usuário NÃO segue e que não são ele mesmo
+    const suggestions = users.filter(u => 
+        u.id !== currentUser.id && !currentUser.following.includes(u.id)
+    ).slice(0, 5);
+    
     const container = document.getElementById('suggestionsList');
     
     if (suggestions.length === 0) {
-        container.innerHTML = '<p class="placeholder">Nenhuma sugestão</p>';
+        container.innerHTML = '<p class="placeholder">Nenhuma sugestão no momento</p>';
         return;
     }
     
-    container.innerHTML = suggestions.slice(0, 5).map(user => `
-        <div class="suggestion-item">
+    container.innerHTML = suggestions.map(user => `
+        <div class="suggestion-item" onclick="showProfile(${user.id})">
             <div class="suggestion-avatar">${user.avatar ? `<img src="${user.avatar}">` : user.emoji || '📝'}</div>
             <div class="suggestion-info">
                 <div class="suggestion-name">${user.name} ${user.isVerified ? '<i class="fas fa-check-circle" style="color:#3b82f6; font-size:0.7rem;"></i>' : ''}</div>
                 <div class="suggestion-bio">@${user.username}</div>
             </div>
-            <button class="follow-btn" onclick="followUser(${user.id})">Seguir</button>
+            <button class="follow-btn" onclick="event.stopPropagation(); followUser(${user.id})">Seguir</button>
         </div>
     `).join('');
 }
@@ -377,7 +600,10 @@ function renderDMList() {
     }).join('');
 }
 
-// ===== FUNÇÕES DE INTERAÇÃO =====
+// ============================================
+// FUNÇÕES DE INTERAÇÃO (Curtir, Seguir, Comentar)
+// ============================================
+
 window.toggleLike = function(postId) {
     const posts = DB.getPosts();
     const post = posts.find(p => p.id === postId);
@@ -394,24 +620,65 @@ window.toggleLike = function(postId) {
             }
         }
         DB.savePosts(posts);
-        renderCurrentPage();
+        
+        if (viewingProfileId) {
+            renderProfilePage(viewingProfileId);
+        } else {
+            renderCurrentPage();
+        }
     }
 };
 
 window.toggleSavePost = function(postId) {
     if (DB.isPostSaved(currentUser.id, postId)) {
         DB.unsavePost(currentUser.id, postId);
-        showToast('❌ Post removido dos salvos');
+        showToast('❌ Removido dos salvos');
     } else {
         DB.savePost(currentUser.id, postId);
-        showToast('✅ Post salvo nos favoritos');
+        showToast('✅ Salvo nos favoritos');
     }
-    renderCurrentPage();
+    
+    if (currentPage === 'salvos') {
+        renderCurrentPage();
+    } else if (viewingProfileId) {
+        renderProfilePage(viewingProfileId);
+    } else {
+        renderCurrentPage();
+    }
+};
+
+window.followUser = function(userId) {
+    const isFollowing = currentUser.following.includes(userId);
+    
+    if (isFollowing) {
+        DB.unfollowUser(currentUser.id, userId);
+        showToast(`❌ Você deixou de seguir ${DB.getUserById(userId).name}`);
+    } else {
+        DB.followUser(currentUser.id, userId);
+        showToast(`✅ Agora você segue ${DB.getUserById(userId).name}`);
+    }
+    
+    // Atualizar tudo
+    renderSuggestions();
+    if (viewingProfileId) {
+        renderProfilePage(viewingProfileId);
+    } else {
+        renderCurrentPage();
+    }
+    Notifications.renderList();
 };
 
 window.toggleComments = function(postId) {
     const div = document.getElementById(`comments-${postId}`);
-    if (div) div.style.display = div.style.display === 'none' ? 'block' : 'none';
+    if (div) {
+        if (div.style.display === 'none') {
+            div.style.display = 'block';
+            // Carregar todos os comentários quando abrir
+            loadAllComments(postId);
+        } else {
+            div.style.display = 'none';
+        }
+    }
 };
 
 window.addComment = function(postId) {
@@ -424,7 +691,7 @@ window.addComment = function(postId) {
     
     if (post) {
         if (!post.comentarios) post.comentarios = [];
-        post.comentarios.push({ 
+        post.comentarios.unshift({ 
             userId: currentUser.id, 
             username: currentUser.name, 
             texto: text, 
@@ -433,18 +700,16 @@ window.addComment = function(postId) {
         DB.savePosts(posts);
         
         if (post.userId !== currentUser.id) {
-            Notifications.create(post.userId, 'comment', `${currentUser.name} comentou no seu post`, postId);
+            Notifications.create(post.userId, 'comment', `${currentUser.name} comentou no seu post: "${text.substring(0, 50)}"`, postId);
         }
         input.value = '';
-        renderCurrentPage();
+        
+        if (viewingProfileId) {
+            renderProfilePage(viewingProfileId);
+        } else {
+            renderCurrentPage();
+        }
     }
-};
-
-window.followUser = function(userId) {
-    DB.followUser(currentUser.id, userId);
-    renderSuggestions();
-    renderCurrentPage();
-    showToast(`✅ Agora você segue ${DB.getUserById(userId).name}`);
 };
 
 window.playAudio = function(audioData) {
@@ -456,8 +721,13 @@ window.playAudio = function(audioData) {
 window.deletePost = function(postId) {
     if (confirm('Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita.')) {
         DB.deletePost(postId);
-        renderCurrentPage();
         showToast('🗑️ Publicação excluída');
+        
+        if (viewingProfileId) {
+            renderProfilePage(viewingProfileId);
+        } else {
+            renderCurrentPage();
+        }
     }
 };
 
@@ -487,30 +757,28 @@ window.searchHashtag = function(hashtag) {
     currentSearchTerm = '#' + hashtag;
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.value = '#' + hashtag;
-    currentPage = 'feed';
-    renderCurrentPage();
+    renderSearchResults();
     showToast(`🔍 Buscando por #${hashtag}`);
 };
 
 window.viewFullImage = function(imageUrl) {
-    const modal = document.createElement('div');
-    modal.style.position = 'fixed';
-    modal.style.top = '0';
-    modal.style.left = '0';
-    modal.style.width = '100%';
-    modal.style.height = '100%';
-    modal.style.background = 'rgba(0,0,0,0.9)';
-    modal.style.zIndex = '3000';
-    modal.style.display = 'flex';
-    modal.style.alignItems = 'center';
-    modal.style.justifyContent = 'center';
-    modal.style.cursor = 'pointer';
-    modal.innerHTML = `<img src="${imageUrl}" style="max-width: 90%; max-height: 90%; border-radius: 16px;">`;
-    modal.onclick = () => modal.remove();
-    document.body.appendChild(modal);
+    const modal = document.getElementById('fullImageModal');
+    const fullImage = document.getElementById('fullImage');
+    if (modal && fullImage) {
+        fullImage.src = imageUrl;
+        modal.style.display = 'flex';
+    }
 };
 
-// ===== FUNÇÕES DE DM =====
+// Fechar modal de imagem
+document.querySelector('#fullImageModal .close-modal')?.addEventListener('click', () => {
+    document.getElementById('fullImageModal').style.display = 'none';
+});
+
+// ============================================
+// FUNÇÕES DE DM
+// ============================================
+
 window.openDM = function(userId) {
     currentDMTarget = userId;
     const user = DB.getUserById(userId);
@@ -546,7 +814,8 @@ function sendDirectMessage() {
 
 function openNewChatModal() {
     const users = DB.getUsers().filter(u => u.id !== currentUser.id);
-    const username = prompt('Digite o nome de usuário para conversar:\n\n' + users.map(u => `@${u.username} - ${u.name}`).join('\n'));
+    const userList = users.map(u => `${u.name} (@${u.username})`).join('\n');
+    const username = prompt(`Digite o nome de usuário para conversar:\n\nUsuários disponíveis:\n${userList}`);
     if (username) {
         const user = DB.getUserByUsername(username);
         if (user) openDM(user.id);
@@ -554,7 +823,10 @@ function openNewChatModal() {
     }
 }
 
-// ===== POSTAGEM =====
+// ============================================
+// FUNÇÕES DE POSTAGEM
+// ============================================
+
 function openPostModal() {
     document.getElementById('postModal').classList.add('open');
     if (!editingPostId) {
@@ -667,7 +939,69 @@ function publishPost() {
     document.getElementById('publishPostBtn').textContent = 'Publicar';
     
     currentPagePosts = 0;
-    renderCurrentPage();
+    if (viewingProfileId) {
+        renderProfilePage(viewingProfileId);
+    } else {
+        renderCurrentPage();
+    }
+}
+
+function setupImageUpload(inputId, previewId, onImageSelected) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    
+    if (!input) return;
+    
+    input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                if (preview) {
+                    preview.src = ev.target.result;
+                    preview.style.display = 'block';
+                }
+                if (onImageSelected) onImageSelected(ev.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+}
+
+function initCharCounter(textareaId, counterId, maxLength = 2000) {
+    const textarea = document.getElementById(textareaId);
+    const counter = document.getElementById(counterId);
+    
+    if (!textarea || !counter) return;
+    
+    function updateCounter() {
+        const length = textarea.value.length;
+        counter.textContent = `${length}/${maxLength}`;
+        
+        if (length > maxLength * 0.9) {
+            counter.classList.add('warning');
+        } else {
+            counter.classList.remove('warning');
+        }
+        
+        if (length > maxLength) {
+            counter.classList.add('danger');
+            textarea.style.borderColor = '#ef4444';
+        } else {
+            counter.classList.remove('danger');
+            textarea.style.borderColor = '';
+        }
+    }
+    
+    textarea.addEventListener('input', updateCounter);
+    updateCounter();
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 function getTimeAgo(dateString) {
@@ -687,20 +1021,71 @@ function getTimeAgo(dateString) {
 function startRealtimeUpdates() {
     setInterval(() => {
         if (document.visibilityState === 'visible') {
-            renderCurrentPage();
+            if (viewingProfileId) {
+                renderProfilePage(viewingProfileId);
+            } else {
+                renderCurrentPage();
+            }
             renderDMList();
             Notifications.renderList();
             Notifications.updateBadge();
+            renderSuggestions();
         }
     }, 10000);
 }
 
-// Exportar funções globais
+function showToast(message) {
+    const existingToast = document.querySelector('.toast');
+    if (existingToast) existingToast.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg-card);
+        border: 1px solid var(--accent);
+        border-radius: 40px;
+        padding: 10px 20px;
+        color: white;
+        font-size: 0.85rem;
+        z-index: 2500;
+        animation: fadeInUp 0.3s ease;
+        white-space: nowrap;
+    `;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+window.sharePost = function(title, url) {
+    if (navigator.share) {
+        navigator.share({
+            title: title,
+            text: 'Confira esta publicação no Repórter da Periferia!',
+            url: url
+        }).catch(() => {});
+    } else {
+        copyToClipboard(url);
+    }
+};
+
+window.copyToClipboard = function(text) {
+    navigator.clipboard.writeText(text);
+    showToast('✅ Link copiado!');
+};
+
+window.showProfile = showProfile;
+window.followUser = followUser;
 window.toggleLike = toggleLike;
 window.toggleSavePost = toggleSavePost;
 window.toggleComments = toggleComments;
 window.addComment = addComment;
-window.followUser = followUser;
 window.playAudio = playAudio;
 window.openDM = openDM;
 window.deletePost = deletePost;

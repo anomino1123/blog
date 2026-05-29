@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Repórter da Periferia | A notícia que não chega no centro</title>
-    <meta name="description" content="Análise crítica sobre sociedade, escola e política. A periferia tem voz própria.">
+    <meta name="description" content="Análise crítica sobre sociedade, escola e política.">
     <meta name="author" content="Repórter da Periferia">
     <meta name="theme-color" content="#e85d04">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Repórter">
     <meta name="mobile-web-app-capable" content="yes">
     
@@ -185,7 +185,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(err => console.log(err));
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
             });
         }
     </script>
@@ -198,14 +198,72 @@
     <script src="app.js"></script>
 
     <script>
+        // Marcar todas notificações como lidas
         document.getElementById('markAllReadBtn')?.addEventListener('click', () => {
-            Notifications.markAllAsRead();
-            showToast('✅ Todas notificações marcadas como lidas');
+            if (typeof Notifications !== 'undefined' && Notifications.markAllAsRead) {
+                Notifications.markAllAsRead();
+                if (typeof showToast === 'function') showToast('✅ Todas notificações marcadas como lidas');
+            }
         });
         
-        document.getElementById('fullImageModal')?.querySelector('.close-modal')?.addEventListener('click', () => {
-            document.getElementById('fullImageModal').style.display = 'none';
-        });
+        // Modal de imagem
+        const fullImageModal = document.getElementById('fullImageModal');
+        if (fullImageModal) {
+            fullImageModal.querySelector('.close-modal')?.addEventListener('click', () => {
+                fullImageModal.style.display = 'none';
+            });
+            fullImageModal.addEventListener('click', (e) => {
+                if (e.target === fullImageModal) fullImageModal.style.display = 'none';
+            });
+        }
+        
+        // Upload de imagem - remover
+        const removeImageBtn = document.getElementById('removeImageBtn');
+        const postImagePreview = document.getElementById('postImagePreview');
+        const postImageInput = document.getElementById('postImageInput');
+        if (removeImageBtn) {
+            removeImageBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (postImagePreview) postImagePreview.style.display = 'none';
+                if (removeImageBtn) removeImageBtn.style.display = 'none';
+                if (postImageInput) postImageInput.value = '';
+                if (typeof selectedImage !== 'undefined') selectedImage = null;
+            });
+        }
+        
+        // Upload de imagem - clique na área
+        const imageUploadArea = document.getElementById('imageUploadArea');
+        if (imageUploadArea && postImageInput) {
+            imageUploadArea.addEventListener('click', () => postImageInput.click());
+            postImageInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        if (postImagePreview) {
+                            postImagePreview.src = ev.target.result;
+                            postImagePreview.style.display = 'block';
+                            if (removeImageBtn) removeImageBtn.style.display = 'inline-block';
+                        }
+                        if (typeof selectedImage !== 'undefined') selectedImage = ev.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+        
+        // Contador de caracteres
+        const postContent = document.getElementById('postContentInput');
+        const charCounter = document.getElementById('charCounter');
+        if (postContent && charCounter) {
+            postContent.addEventListener('input', () => {
+                const len = postContent.value.length;
+                charCounter.textContent = `${len}/2000`;
+                if (len > 2000) charCounter.style.color = '#ef4444';
+                else if (len > 1800) charCounter.style.color = '#f59e0b';
+                else charCounter.style.color = '';
+            });
+        }
     </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - NOTIFICAÇÕES
-// Versão 4.0
+// Versão 4.0 - CORRIGIDO
 // ============================================
 
 const Notifications = {

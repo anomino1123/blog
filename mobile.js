@@ -1,7 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - FUNÇÕES MOBILE
-// Menu hamburguer, toast, utils
-// Versão 4.0
+// Versão 4.0 - CORRIGIDO
 // ============================================
 
 function showToast(message, duration = 3000) {
@@ -45,6 +44,7 @@ function initMobileMenu() {
     document.body.appendChild(overlay);
     
     const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
     
     function openMenu() {
         sidebar.classList.add('open');
@@ -91,27 +91,6 @@ function initCharCounter(textareaId, counterId, maxLength = 2000) {
     updateCounter();
 }
 
-function setupImageUpload(inputId, previewId, onImageSelected) {
-    const input = document.getElementById(inputId);
-    const preview = document.getElementById(previewId);
-    if (!input) return;
-    
-    input.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                if (preview) {
-                    preview.src = ev.target.result;
-                    preview.style.display = 'block';
-                }
-                if (onImageSelected) onImageSelected(ev.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-}
-
 function initTheme() {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light') {
@@ -138,5 +117,4 @@ window.showToast = showToast;
 window.copyToClipboard = copyToClipboard;
 window.sharePost = sharePost;
 window.initCharCounter = initCharCounter;
-window.setupImageUpload = setupImageUpload;
 window.toggleTheme = toggleTheme;

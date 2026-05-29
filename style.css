@@ -3,7 +3,7 @@
    Versão 4.0 - Feed público estilo Instagram
    ============================================ */
 
-* {
+   * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
@@ -383,6 +383,28 @@ body.light-mode {
 .delete-btn:hover { background: rgba(239,68,68,0.2); }
 .edit-btn { color: var(--blue); }
 .edit-btn:hover { background: rgba(59,130,246,0.2); }
+
+.comment-input {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+.comment-input input {
+    flex: 1;
+    padding: 10px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    color: var(--text-primary);
+}
+.comment-input button {
+    background: var(--accent);
+    border: none;
+    padding: 0 20px;
+    border-radius: 40px;
+    cursor: pointer;
+    color: white;
+}
 
 .load-more-btn {
     background: var(--bg-hover);

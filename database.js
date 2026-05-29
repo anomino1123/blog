@@ -1,6 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - DATABASE
-// Versão 4.0
+// Versão 4.0 - CORRIGIDO
 // ============================================
 
 const DB = {
@@ -23,7 +23,7 @@ const DB = {
                 username: "adminniriswest",
                 password: "123",
                 name: "Niris West",
-                bio: "Fundadora do Repórter da Periferia. Jornalista, escritora e apaixonada por educação crítica. 🎙️",
+                bio: "Fundadora do Repórter da Periferia. Jornalista, escritora e apaixonada por educação crítica.",
                 avatar: null,
                 emoji: "👑",
                 isVerified: true,
@@ -37,7 +37,7 @@ const DB = {
                 username: "anonimo",
                 password: "qwe123qwe123",
                 name: "Anônimo",
-                bio: "🎭 Sem rótulos, sem máscaras. Só pensamento livre.",
+                bio: "Sem rótulos, sem máscaras. Só pensamento livre.",
                 avatar: null,
                 emoji: "🎭",
                 isVerified: false,
@@ -51,7 +51,7 @@ const DB = {
                 username: "convidado",
                 password: "convidado123",
                 name: "Visitante",
-                bio: "Explorando o Repórter da Periferia. 👋",
+                bio: "Explorando o Repórter da Periferia.",
                 avatar: null,
                 emoji: "👋",
                 isVerified: false,
@@ -265,15 +265,5 @@ const DB = {
     isAdmin: function(userId) {
         const user = this.getUserById(userId);
         return user && (user.role === 'admin' || user.username === 'adminniriswest');
-    },
-
-    searchPosts: function(termo) {
-        const posts = this.getPosts();
-        const termoLower = termo.toLowerCase();
-        return posts.filter(post => 
-            post.titulo.toLowerCase().includes(termoLower) ||
-            post.conteudo.toLowerCase().includes(termoLower) ||
-            (post.hashtags && post.hashtags.some(tag => tag.toLowerCase().includes(termoLower)))
-        );
     }
 };

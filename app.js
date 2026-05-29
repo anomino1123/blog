@@ -1,6 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - APP PRINCIPAL
-// Versão 4.0 - FEED PÚBLICO (todos veem todos os posts)
+// Versão 4.0 - FEED PÚBLICO - CORRIGIDO
 // ============================================
 
 let currentUser = null;
@@ -50,8 +50,10 @@ function loadInitialData() {
     renderCurrentPage();
     renderSuggestions();
     renderDMList();
-    Notifications.renderList();
-    Notifications.updateBadge();
+    if (typeof Notifications !== 'undefined') {
+        Notifications.renderList();
+        Notifications.updateBadge();
+    }
 }
 
 function setupEventListeners() {
@@ -68,17 +70,28 @@ function setupEventListeners() {
         });
     });
     
-    document.getElementById('fabPostBtn').addEventListener('click', openPostModal);
-    document.getElementById('refreshFeedBtn').addEventListener('click', () => {
+    const fabBtn = document.getElementById('fabPostBtn');
+    if (fabBtn) fabBtn.addEventListener('click', openPostModal);
+    
+    const refreshBtn = document.getElementById('refreshFeedBtn');
+    if (refreshBtn) refreshBtn.addEventListener('click', () => {
         currentPagePosts = 0;
         renderCurrentPage();
         showToast('Feed atualizado!');
     });
-    document.getElementById('logoutBtn').addEventListener('click', () => Auth.logout());
+    
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) logoutBtn.addEventListener('click', () => Auth.logout());
     
     const modal = document.getElementById('postModal');
     document.querySelectorAll('.close-modal').forEach(btn => {
-        btn.addEventListener('click', () => modal.classList.remove('open'));
+        btn.addEventListener('click', () => {
+            if (modal) modal.classList.remove('open');
+            const dmModal = document.getElementById('dmModal');
+            if (dmModal) dmModal.classList.remove('open');
+            const imageModal = document.getElementById('fullImageModal');
+            if (imageModal) imageModal.style.display = 'none';
+        });
     });
     
     document.querySelectorAll('.type-btn').forEach(btn => {
@@ -87,20 +100,20 @@ function setupEventListeners() {
             this.classList.add('active');
             selectedPostType = this.dataset.type;
             const audioArea = document.getElementById('audioRecordArea');
-            audioArea.style.display = selectedPostType === 'audio' ? 'block' : 'none';
+            if (audioArea) audioArea.style.display = selectedPostType === 'audio' ? 'block' : 'none';
         });
     });
     
     setupAudioRecording();
-    document.getElementById('publishPostBtn').addEventListener('click', publishPost);
-    document.getElementById('sendDmBtn').addEventListener('click', sendDirectMessage);
-    document.getElementById('newChatBtn').addEventListener('click', openNewChatModal);
     
-    setupImageUpload('postImageInput', 'postImagePreview', (imageData) => {
-        selectedImage = imageData;
-    });
+    const publishBtn = document.getElementById('publishPostBtn');
+    if (publishBtn) publishBtn.addEventListener('click', publishPost);
     
-    initCharCounter('postContentInput', 'charCounter');
+    const sendDmBtn = document.getElementById('sendDmBtn');
+    if (sendDmBtn) sendDmBtn.addEventListener('click', sendDirectMessage);
+    
+    const newChatBtn = document.getElementById('newChatBtn');
+    if (newChatBtn) newChatBtn.addEventListener('click', openNewChatModal);
 }
 
 function changePage(page) {
@@ -128,7 +141,8 @@ function changePage(page) {
         'audio': 'Áudios',
         'salvos': 'Posts Salvos'
     };
-    document.getElementById('pageTitle').textContent = titles[page] || 'Repórter da Periferia';
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.textContent = titles[page] || 'Repórter da Periferia';
     renderCurrentPage();
 }
 
@@ -138,6 +152,8 @@ function showSavedPosts() {
     const savedPosts = allPosts.filter(p => savedPostIds.includes(p.id));
     
     const container = document.getElementById('feedContainer');
+    if (!container) return;
+    
     if (savedPosts.length === 0) {
         container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;">
             <i class="fas fa-bookmark" style="font-size: 3rem; opacity: 0.3;"></i>
@@ -226,6 +242,8 @@ function renderCurrentPage() {
 
 function renderFeedWithPagination(allPosts) {
     const container = document.getElementById('feedContainer');
+    if (!container) return;
+    
     const paginatedPosts = allPosts.slice(0, currentPagePosts + postsToShow);
     const hasMore = paginatedPosts.length < allPosts.length;
     
@@ -233,7 +251,7 @@ function renderFeedWithPagination(allPosts) {
         container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;">
             <i class="fas fa-globe" style="font-size: 3rem; opacity: 0.3;"></i>
             <p>Nenhuma publicação ainda.</p>
-            <button onclick="document.getElementById('fabPostBtn').click()" style="background: var(--accent); border: none; padding: 10px 20px; border-radius: 40px; color: white; margin-top: 16px; cursor: pointer;">
+            <button onclick="document.getElementById('fabPostBtn')?.click()" style="background: var(--accent); border: none; padding: 10px 20px; border-radius: 40px; color: white; margin-top: 16px; cursor: pointer;">
                 <i class="fas fa-plus"></i> Publicar agora
             </button>
         </div>`;
@@ -298,7 +316,7 @@ function renderPostCard(post) {
     
     const commentsHtml = (post.comentarios || []).map(c => `
         <div style="padding: 8px 0; border-bottom: 1px solid var(--border);">
-            <strong>${c.username}</strong>: ${escapeHtml(c.texto)}
+            <strong>${escapeHtml(c.username)}</strong>: ${escapeHtml(c.texto)}
             <div style="font-size: 0.6rem; color: var(--text-secondary);">${getTimeAgo(c.data)}</div>
         </div>
     `).join('');
@@ -312,7 +330,7 @@ function renderPostCard(post) {
                     ${author.avatar ? `<img src="${author.avatar}">` : `<span>${author.emoji || '📝'}</span>`}
                 </div>
                 <div class="post-author-info" onclick="viewProfile(${author.id})">
-                    <div class="post-author">${author.name} ${verifiedBadge}</div>
+                    <div class="post-author">${escapeHtml(author.name)} ${verifiedBadge}</div>
                     <div class="post-time">${timeAgo} ${post.editado ? '(editado)' : ''}</div>
                 </div>
                 <div style="display: flex; gap: 8px; margin-left: auto;">
@@ -342,7 +360,7 @@ function renderPostCard(post) {
                 <button class="action-btn ${isSaved ? 'saved' : ''}" onclick="toggleSavePost(${post.id})">
                     <i class="fa-${isSaved ? 'solid' : 'regular'} fa-bookmark"></i> Salvar
                 </button>
-                <button class="action-btn" onclick="sharePost('${post.titulo}', '${post.conteudo.substring(0, 100).replace(/'/g, "\\'")}', window.location.href)">
+                <button class="action-btn" onclick="sharePost('${escapeHtml(post.titulo)}', '${escapeHtml(post.conteudo.substring(0, 100))}', window.location.href)">
                     <i class="far fa-share-square"></i> Compartilhar
                 </button>
             </div>
@@ -358,6 +376,7 @@ function renderPostCard(post) {
 }
 
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -371,6 +390,7 @@ function renderSuggestions() {
     ).slice(0, 5);
     
     const container = document.getElementById('suggestionsList');
+    if (!container) return;
     
     if (suggestions.length === 0) {
         container.innerHTML = '<p class="placeholder">Nenhuma sugestão</p>';
@@ -383,8 +403,8 @@ function renderSuggestions() {
                 ${user.avatar ? `<img src="${user.avatar}">` : user.emoji || '📝'}
             </div>
             <div class="suggestion-info" onclick="viewProfile(${user.id})">
-                <div class="suggestion-name">${user.name} ${user.isVerified ? '<i class="fas fa-check-circle"></i>' : ''}</div>
-                <div class="suggestion-bio">${user.bio.substring(0, 30)}</div>
+                <div class="suggestion-name">${escapeHtml(user.name)} ${user.isVerified ? '<i class="fas fa-check-circle" style="color:#3b82f6; font-size:0.7rem;"></i>' : ''}</div>
+                <div class="suggestion-bio">${escapeHtml(user.bio.substring(0, 30))}</div>
             </div>
             <button class="follow-btn" onclick="followUser(${user.id})">Seguir</button>
         </div>
@@ -407,6 +427,7 @@ function renderDMList() {
     
     chats.sort((a, b) => new Date(b.lastTime) - new Date(a.lastTime));
     const container = document.getElementById('dmList');
+    if (!container) return;
     
     if (chats.length === 0) {
         container.innerHTML = '<p class="placeholder">Nenhuma conversa</p>';
@@ -419,13 +440,15 @@ function renderDMList() {
             <div class="dm-item" onclick="openDM(${chat.userId})">
                 <div class="dm-avatar">${user?.avatar ? `<img src="${user.avatar}">` : user?.emoji || '📝'}</div>
                 <div class="dm-info">
-                    <div class="dm-name">${user?.name}</div>
+                    <div class="dm-name">${escapeHtml(user?.name)}</div>
                     <div class="dm-preview">${escapeHtml(chat.lastMessage.substring(0, 40))}</div>
                 </div>
             </div>
         `;
     }).join('');
 }
+
+// ===== FUNÇÕES DE INTERAÇÃO =====
 
 window.toggleLike = function(postId) {
     const posts = DB.getPosts();
@@ -439,7 +462,7 @@ window.toggleLike = function(postId) {
             showToast('💔 Curtida removida');
         } else {
             post.curtidas.push(currentUser.id);
-            if (post.userId !== currentUser.id) {
+            if (post.userId !== currentUser.id && typeof Notifications !== 'undefined') {
                 Notifications.create(post.userId, 'like', `${currentUser.name} curtiu seu post`, postId);
             }
             showToast('❤️ Curtiu!');
@@ -469,7 +492,9 @@ window.followUser = function(userId) {
         showToast(`🔴 Você deixou de seguir ${targetUser.name}`);
     } else {
         DB.followUser(currentUser.id, userId);
-        Notifications.create(userId, 'follow', `${currentUser.name} começou a seguir você`, currentUser.id);
+        if (typeof Notifications !== 'undefined') {
+            Notifications.create(userId, 'follow', `${currentUser.name} começou a seguir você`, currentUser.id);
+        }
         showToast(`✅ Seguindo ${targetUser.name}`);
     }
     
@@ -484,7 +509,7 @@ window.toggleComments = function(postId) {
 
 window.addComment = function(postId) {
     const input = document.getElementById(`commentInput-${postId}`);
-    const text = input.value.trim();
+    const text = input?.value.trim();
     if (!text) return;
     
     const posts = DB.getPosts();
@@ -500,10 +525,10 @@ window.addComment = function(postId) {
         });
         DB.savePosts(posts);
         
-        if (post.userId !== currentUser.id) {
+        if (post.userId !== currentUser.id && typeof Notifications !== 'undefined') {
             Notifications.create(post.userId, 'comment', `${currentUser.name} comentou no seu post`, postId);
         }
-        input.value = '';
+        if (input) input.value = '';
         renderCurrentPage();
         showToast('💬 Comentário adicionado');
     }
@@ -516,16 +541,16 @@ window.viewProfile = function(userId) {
     const isFollowing = currentUser.following.includes(userId);
     
     const modalHtml = `
-        <div id="profileModal" class="modal open" style="display: flex;">
+        <div id="profileModal" class="modal open" style="display: flex; z-index: 3000;">
             <div class="modal-content small" style="text-align: center;">
                 <div class="modal-header"><h3>Perfil</h3><button class="close-modal" onclick="closeProfileModal()">&times;</button></div>
                 <div>
                     <div style="width: 80px; height: 80px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 16px; overflow: hidden;">
                         ${user.avatar ? `<img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;">` : user.emoji || '📝'}
                     </div>
-                    <h2>${user.name} ${user.isVerified ? '<i class="fas fa-check-circle" style="color:#3b82f6;"></i>' : ''}</h2>
+                    <h2>${escapeHtml(user.name)} ${user.isVerified ? '<i class="fas fa-check-circle" style="color:#3b82f6;"></i>' : ''}</h2>
                     <p style="color: var(--text-secondary);">@${user.username}</p>
-                    <p style="margin: 16px 0;">${user.bio}</p>
+                    <p style="margin: 16px 0;">${escapeHtml(user.bio)}</p>
                     <div style="display: flex; justify-content: center; gap: 24px; margin: 16px 0;">
                         <div><strong>${user.followers.length}</strong><br><span style="font-size: 0.7rem;">Seguidores</span></div>
                         <div><strong>${user.following.length}</strong><br><span style="font-size: 0.7rem;">Seguindo</span></div>
@@ -564,19 +589,28 @@ window.editPost = function(postId) {
     
     if (post) {
         editingPostId = postId;
-        document.getElementById('postTitleInput').value = post.titulo;
-        document.getElementById('postContentInput').value = post.conteudo;
-        document.getElementById('postEmojiInput').value = post.emoji || '';
-        document.getElementById('hashtagsInput').value = post.hashtags ? post.hashtags.join(', ') : '';
+        const titleInput = document.getElementById('postTitleInput');
+        const contentInput = document.getElementById('postContentInput');
+        const emojiInput = document.getElementById('postEmojiInput');
+        const hashtagsInput = document.getElementById('hashtagsInput');
+        const imagePreview = document.getElementById('postImagePreview');
+        const removeBtn = document.getElementById('removeImageBtn');
         
-        if (post.imagem) {
-            document.getElementById('postImagePreview').src = post.imagem;
-            document.getElementById('postImagePreview').style.display = 'block';
+        if (titleInput) titleInput.value = post.titulo;
+        if (contentInput) contentInput.value = post.conteudo;
+        if (emojiInput) emojiInput.value = post.emoji || '';
+        if (hashtagsInput) hashtagsInput.value = post.hashtags ? post.hashtags.join(', ') : '';
+        
+        if (post.imagem && imagePreview) {
+            imagePreview.src = post.imagem;
+            imagePreview.style.display = 'block';
+            if (removeBtn) removeBtn.style.display = 'inline-block';
             selectedImage = post.imagem;
         }
         
         openPostModal();
-        document.getElementById('publishPostBtn').textContent = '✏️ Atualizar';
+        const publishBtn = document.getElementById('publishPostBtn');
+        if (publishBtn) publishBtn.textContent = '✏️ Atualizar';
     }
 };
 
@@ -598,24 +632,34 @@ window.viewFullImage = function(imageUrl) {
     }
 };
 
+window.playAudio = function(audioData) {
+    const audio = new Audio(audioData);
+    audio.play();
+    showToast('🎤 Reproduzindo áudio...');
+};
+
+// ===== FUNÇÕES DE DM =====
 window.openDM = function(userId) {
     currentDMTarget = userId;
     const user = DB.getUserById(userId);
-    document.getElementById('dmTargetName').textContent = user?.name || 'Conversa';
+    const dmTargetName = document.getElementById('dmTargetName');
+    if (dmTargetName) dmTargetName.textContent = user?.name || 'Conversa';
     renderDMMessages(userId);
-    document.getElementById('dmModal').classList.add('open');
+    const dmModal = document.getElementById('dmModal');
+    if (dmModal) dmModal.classList.add('open');
 };
 
 function renderDMMessages(userId) {
     const messages = DB.getConversation(currentUser.id, userId);
     const container = document.getElementById('dmMessagesArea');
+    if (!container) return;
     
     container.innerHTML = messages.map(msg => `
         <div style="text-align: ${msg.from === currentUser.id ? 'right' : 'left'}; margin-bottom: 12px;">
             <div style="background: ${msg.from === currentUser.id ? 'var(--accent)' : 'var(--bg-hover)'}; display: inline-block; padding: 10px 16px; border-radius: 20px; max-width: 80%;">
                 ${escapeHtml(msg.message)}
             </div>
-            <div style="font-size: 0.65rem; opacity: 0.6;">${new Date(msg.time).toLocaleTimeString()}</div>
+            <div style="font-size: 0.65rem; opacity: 0.6; margin-top: 4px;">${new Date(msg.time).toLocaleTimeString()}</div>
         </div>
     `).join('');
     container.scrollTop = container.scrollHeight;
@@ -623,12 +667,13 @@ function renderDMMessages(userId) {
 
 function sendDirectMessage() {
     const input = document.getElementById('dmMessageInput');
-    const message = input.value.trim();
+    const message = input?.value.trim();
     if (!message || !currentDMTarget) return;
     DB.sendMessage(currentUser.id, currentDMTarget, message);
-    input.value = '';
+    if (input) input.value = '';
     renderDMMessages(currentDMTarget);
     renderDMList();
+    showToast('📨 Mensagem enviada');
 }
 
 function openNewChatModal() {
@@ -641,18 +686,36 @@ function openNewChatModal() {
     }
 }
 
+// ===== POSTAGEM =====
 function openPostModal() {
-    document.getElementById('postModal').classList.add('open');
+    const modal = document.getElementById('postModal');
+    if (!modal) return;
+    modal.classList.add('open');
+    
     if (!editingPostId) {
-        document.getElementById('postTitleInput').value = '';
-        document.getElementById('postContentInput').value = '';
-        document.getElementById('postEmojiInput').value = '';
-        document.getElementById('hashtagsInput').value = '';
-        document.getElementById('postImagePreview').style.display = 'none';
-        document.getElementById('audioPreviewArea').innerHTML = '';
-        document.getElementById('audioDataField').value = '';
+        const titleInput = document.getElementById('postTitleInput');
+        const contentInput = document.getElementById('postContentInput');
+        const emojiInput = document.getElementById('postEmojiInput');
+        const hashtagsInput = document.getElementById('hashtagsInput');
+        const imagePreview = document.getElementById('postImagePreview');
+        const removeBtn = document.getElementById('removeImageBtn');
+        const audioPreview = document.getElementById('audioPreviewArea');
+        const audioDataField = document.getElementById('audioDataField');
+        const publishBtn = document.getElementById('publishPostBtn');
+        
+        if (titleInput) titleInput.value = '';
+        if (contentInput) contentInput.value = '';
+        if (emojiInput) emojiInput.value = '';
+        if (hashtagsInput) hashtagsInput.value = '';
+        if (imagePreview) imagePreview.style.display = 'none';
+        if (removeBtn) removeBtn.style.display = 'none';
+        if (audioPreview) audioPreview.innerHTML = '';
+        if (audioDataField) audioDataField.value = '';
+        if (publishBtn) publishBtn.textContent = 'Publicar';
         selectedImage = null;
-        document.getElementById('publishPostBtn').textContent = 'Publicar';
+        
+        const charCounter = document.getElementById('charCounter');
+        if (charCounter) charCounter.textContent = '0/2000';
     }
 }
 
@@ -670,35 +733,41 @@ function setupAudioRecording() {
             mediaRecorder.onstop = () => {
                 const blob = new Blob(audioChunks, { type: 'audio/webm' });
                 const url = URL.createObjectURL(blob);
-                document.getElementById('audioPreviewArea').innerHTML = `<audio controls src="${url}" style="width:100%; margin-top:10px;"></audio>`;
+                const audioPreview = document.getElementById('audioPreviewArea');
+                if (audioPreview) audioPreview.innerHTML = `<audio controls src="${url}" style="width:100%; margin-top:10px;"></audio>`;
                 const reader = new FileReader();
-                reader.onloadend = () => document.getElementById('audioDataField').value = reader.result;
+                reader.onloadend = () => {
+                    const audioDataField = document.getElementById('audioDataField');
+                    if (audioDataField) audioDataField.value = reader.result;
+                };
                 reader.readAsDataURL(blob);
             };
             mediaRecorder.start();
             startBtn.style.display = 'none';
-            stopBtn.style.display = 'block';
+            if (stopBtn) stopBtn.style.display = 'block';
             showToast('🎙️ Gravando...');
         } catch(err) {
             showToast('❌ Permita acesso ao microfone');
         }
     });
     
-    stopBtn.addEventListener('click', () => {
-        if (mediaRecorder) {
-            mediaRecorder.stop();
-            startBtn.style.display = 'block';
-            stopBtn.style.display = 'none';
-            showToast('⏹️ Gravação finalizada');
-        }
-    });
+    if (stopBtn) {
+        stopBtn.addEventListener('click', () => {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                startBtn.style.display = 'block';
+                stopBtn.style.display = 'none';
+                showToast('⏹️ Gravação finalizada');
+            }
+        });
+    }
 }
 
 function publishPost() {
-    const titulo = document.getElementById('postTitleInput').value.trim();
-    const conteudo = document.getElementById('postContentInput').value.trim();
-    const emoji = document.getElementById('postEmojiInput').value.trim();
-    const audioData = document.getElementById('audioDataField').value;
+    const titulo = document.getElementById('postTitleInput')?.value.trim();
+    const conteudo = document.getElementById('postContentInput')?.value.trim();
+    const emoji = document.getElementById('postEmojiInput')?.value.trim();
+    const audioData = document.getElementById('audioDataField')?.value;
     const hashtagsInput = document.getElementById('hashtagsInput')?.value || '';
     const hashtags = hashtagsInput.split(',').map(tag => tag.trim().replace('#', '')).filter(tag => tag);
     
@@ -741,16 +810,29 @@ function publishPost() {
         showToast('✅ Publicado! Todos podem ver agora!');
     }
     
-    document.getElementById('postModal').classList.remove('open');
-    document.getElementById('postTitleInput').value = '';
-    document.getElementById('postContentInput').value = '';
-    document.getElementById('postEmojiInput').value = '';
-    document.getElementById('hashtagsInput').value = '';
-    document.getElementById('audioPreviewArea').innerHTML = '';
-    document.getElementById('audioDataField').value = '';
-    document.getElementById('postImagePreview').style.display = 'none';
+    const modal = document.getElementById('postModal');
+    if (modal) modal.classList.remove('open');
+    
+    const titleInput = document.getElementById('postTitleInput');
+    const contentInput = document.getElementById('postContentInput');
+    const emojiInput = document.getElementById('postEmojiInput');
+    const hashtagsInputElem = document.getElementById('hashtagsInput');
+    const audioPreview = document.getElementById('audioPreviewArea');
+    const audioDataField = document.getElementById('audioDataField');
+    const imagePreview = document.getElementById('postImagePreview');
+    const removeBtn = document.getElementById('removeImageBtn');
+    const publishBtn = document.getElementById('publishPostBtn');
+    
+    if (titleInput) titleInput.value = '';
+    if (contentInput) contentInput.value = '';
+    if (emojiInput) emojiInput.value = '';
+    if (hashtagsInputElem) hashtagsInputElem.value = '';
+    if (audioPreview) audioPreview.innerHTML = '';
+    if (audioDataField) audioDataField.value = '';
+    if (imagePreview) imagePreview.style.display = 'none';
+    if (removeBtn) removeBtn.style.display = 'none';
+    if (publishBtn) publishBtn.textContent = 'Publicar';
     selectedImage = null;
-    document.getElementById('publishPostBtn').textContent = 'Publicar';
     
     currentPagePosts = 0;
     renderCurrentPage();
@@ -775,44 +857,28 @@ function startRealtimeUpdates() {
         if (document.visibilityState === 'visible') {
             renderCurrentPage();
             renderDMList();
-            Notifications.renderList();
-            Notifications.updateBadge();
+            if (typeof Notifications !== 'undefined') {
+                Notifications.renderList();
+                Notifications.updateBadge();
+            }
         }
     }, 10000);
 }
 
-function setupImageUpload(inputId, previewId, callback) {
-    const input = document.getElementById(inputId);
-    const preview = document.getElementById(previewId);
-    if (!input) return;
-    
-    input.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                if (preview) {
-                    preview.src = ev.target.result;
-                    preview.style.display = 'block';
-                }
-                if (callback) callback(ev.target.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    });
-}
-
-function initCharCounter(textareaId, counterId) {
-    const textarea = document.getElementById(textareaId);
-    const counter = document.getElementById(counterId);
-    if (!textarea || !counter) return;
-    
-    textarea.addEventListener('input', () => {
-        const length = textarea.value.length;
-        counter.textContent = `${length}/2000`;
-    });
-}
-
-window.playAudio = (audioData) => { new Audio(audioData).play(); };
+// Exportar funções globais
+window.toggleLike = toggleLike;
+window.toggleSavePost = toggleSavePost;
+window.toggleComments = toggleComments;
+window.addComment = addComment;
+window.followUser = followUser;
+window.playAudio = playAudio;
+window.openDM = openDM;
+window.deletePost = deletePost;
+window.editPost = editPost;
+window.searchHashtag = searchHashtag;
+window.viewFullImage = viewFullImage;
+window.viewProfile = viewProfile;
+window.closeProfileModal = closeProfileModal;
 window.showToast = showToast;
 window.sharePost = sharePost;
+window.copyToClipboard = copyToClipboard;

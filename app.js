@@ -1,7 +1,7 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - APP PRINCIPAL
-// Versão 3.0 - Estilo Instagram
-// Feed de quem você segue + descoberta
+// Versão 4.0 - FEED PARA TODOS (estilo Instagram)
+// TODOS OS POSTS APARECEM PARA TODOS OS USUÁRIOS
 // ============================================
 
 let currentUser = null;
@@ -111,6 +111,11 @@ function changePage(page) {
     currentPage = page;
     currentPagePosts = 0;
     currentFilter = 'all';
+    currentSearchTerm = '';
+    
+    // Limpar busca se existir
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
     
     document.querySelectorAll('.nav-btn').forEach(btn => {
         if (btn.dataset.page === page) {
@@ -177,18 +182,22 @@ function setupFilters() {
 function getFilteredPosts(posts) {
     let filtered = [...posts];
     
+    // Filtrar por tipo (pensamento, tese, etc)
     if (currentFilter !== 'all') {
         filtered = filtered.filter(p => p.tipo === currentFilter);
     }
     
+    // Filtrar por busca (texto ou hashtag)
     if (currentSearchTerm) {
+        const term = currentSearchTerm.toLowerCase();
         filtered = filtered.filter(p => 
-            p.titulo.toLowerCase().includes(currentSearchTerm) ||
-            p.conteudo.toLowerCase().includes(currentSearchTerm) ||
-            (p.hashtags && p.hashtags.some(tag => tag.toLowerCase().includes(currentSearchTerm)))
+            p.titulo.toLowerCase().includes(term) ||
+            p.conteudo.toLowerCase().includes(term) ||
+            (p.hashtags && p.hashtags.some(tag => tag.toLowerCase().includes(term)))
         );
     }
     
+    // Ordenar por data (mais recentes primeiro)
     filtered.sort((a, b) => new Date(b.data) - new Date(a.data));
     
     return filtered;
@@ -197,12 +206,14 @@ function getFilteredPosts(posts) {
 function renderCurrentPage() {
     let posts = DB.getPosts();
     
+    // ORDENAR POR DATA (MAIS RECENTES PRIMEIRO)
+    posts.sort((a, b) => new Date(b.data) - new Date(a.data));
+    
     switch(currentPage) {
         case 'feed':
-            // Estilo Instagram: mostra posts de quem você segue + seus próprios posts
-            posts = posts.filter(p => 
-                currentUser.following.includes(p.userId) || p.userId === currentUser.id
-            );
+            // 🔥 MOSTRA TODOS OS POSTS DE TODOS OS USUÁRIOS
+            // Igual ao Instagram - feed público
+            posts = posts;
             break;
         case 'teses':
             posts = posts.filter(p => p.tipo === 'tese');
@@ -222,7 +233,10 @@ function renderCurrentPage() {
             break;
     }
     
+    // Aplicar filtros de busca e categoria
     posts = getFilteredPosts(posts);
+    
+    // Renderizar com paginação
     renderFeedWithPagination(posts);
 }
 
@@ -234,11 +248,11 @@ function renderFeedWithPagination(allPosts) {
     if (paginatedPosts.length === 0 && currentPagePosts === 0) {
         if (currentPage === 'feed') {
             container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;">
-                <i class="fas fa-users" style="font-size: 3rem; opacity: 0.3;"></i>
-                <p style="margin-top: 16px;">Seu feed está vazio!</p>
-                <p style="font-size: 0.8rem; margin-top: 8px;">Siga outras pessoas para ver posts aqui ou</p>
+                <i class="fas fa-globe" style="font-size: 3rem; opacity: 0.3;"></i>
+                <p style="margin-top: 16px;">Nenhuma publicação por aqui ainda.</p>
+                <p style="font-size: 0.8rem; margin-top: 8px;">Seja o primeiro a publicar algo!</p>
                 <button onclick="document.getElementById('fabPostBtn').click()" style="background: var(--accent); border: none; padding: 10px 20px; border-radius: 40px; color: white; margin-top: 16px; cursor: pointer;">
-                    <i class="fas fa-plus"></i> Publique algo
+                    <i class="fas fa-plus"></i> Publicar agora
                 </button>
             </div>`;
         } else {
@@ -440,7 +454,7 @@ function renderDMList() {
     }).join('');
 }
 
-// ===== FUNÇÕES DE INTERAÇÃO (ESTILO INSTAGRAM) =====
+// ===== FUNÇÕES DE INTERAÇÃO =====
 
 window.toggleLike = function(postId) {
     const posts = DB.getPosts();
@@ -528,7 +542,6 @@ window.viewProfile = function(userId) {
     const user = DB.getUserById(userId);
     if (!user) return;
     
-    // Mostrar modal com perfil do usuário
     const isFollowing = currentUser.following.includes(userId);
     
     const modalHtml = `
@@ -559,7 +572,6 @@ window.viewProfile = function(userId) {
         </div>
     `;
     
-    // Remover modal existente
     const existingModal = document.getElementById('profileModal');
     if (existingModal) existingModal.remove();
     
@@ -768,7 +780,7 @@ function publishPost() {
             editado: false
         };
         DB.addPost(newPost);
-        showToast('✅ Publicação criada!');
+        showToast('✅ Publicação criada! Agora todos podem ver!');
     }
     
     document.getElementById('postModal').classList.remove('open');

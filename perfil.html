@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meu Perfil | Repórter da Periferia</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
@@ -12,11 +12,7 @@
         .profile-container { max-width: 600px; margin: 0 auto; padding: 40px 20px; }
         .profile-card { background: #1a1a2e; border-radius: 32px; padding: 40px; border: 1px solid rgba(232,93,4,0.3); }
         .profile-header { text-align: center; margin-bottom: 32px; }
-        .profile-avatar-large {
-            width: 120px; height: 120px; background: linear-gradient(135deg, #e85d04, #f48c06);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            font-size: 3rem; margin: 0 auto 20px; cursor: pointer; overflow: hidden;
-        }
+        .profile-avatar-large { width: 120px; height: 120px; background: linear-gradient(135deg, #e85d04, #f48c06); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 3rem; margin: 0 auto 20px; cursor: pointer; overflow: hidden; }
         .profile-avatar-large:hover { transform: scale(1.05); }
         .profile-avatar-large img { width: 100%; height: 100%; object-fit: cover; }
         .verified-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(59,130,246,0.2); padding: 4px 12px; border-radius: 40px; font-size: 0.7rem; color: #3b82f6; margin-top: 8px; }
@@ -28,7 +24,7 @@
         .back-link { display: block; text-align: center; margin-top: 20px; color: #e85d04; text-decoration: none; }
         #avatarUpload { display: none; }
         .emoji-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 10px; }
-        .emoji-option { background: #1e1e2e; border: 1px solid #2a2a3a; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; font-size: 1.3rem; }
+        .emoji-option { background: #1e1e2e; border: 1px solid #2a2a3a; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; font-size: 1.3rem; transition: all 0.2s; }
         .emoji-option:hover { background: #e85d04; transform: scale(1.05); }
         .emoji-option.selected { background: #e85d04; border-color: #e85d04; }
     </style>
@@ -60,7 +56,7 @@
             <a href="index.html" class="back-link"><i class="fas fa-arrow-left"></i> Voltar</a>
         </div>
     </div>
-    <script src="database.js"></script>
+    <script src="js/database.js"></script>
     <script>
         let currentUser = DB.getCurrentUser();
         if (!currentUser) window.location.href = 'login.html';

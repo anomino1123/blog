@@ -1,8 +1,3 @@
-// ============================================
-// REPÓRTER DA PERIFERIA - NOTIFICAÇÕES
-// Versão 4.0 - CORRIGIDO
-// ============================================
-
 const Notifications = {
     permissionGranted: false,
 
@@ -15,37 +10,17 @@ const Notifications = {
 
     create: function(userId, type, message, relatedId = null) {
         const notifications = DB.getNotifications();
-        
-        const newNotification = {
-            id: Date.now(),
-            userId: userId,
-            type: type,
-            message: message,
-            relatedId: relatedId,
-            read: false,
-            createdAt: new Date().toISOString()
-        };
-        
+        const newNotification = { id: Date.now(), userId: userId, type: type, message: message, relatedId: relatedId, read: false, createdAt: new Date().toISOString() };
         notifications.push(newNotification);
         DB.saveNotifications(notifications);
-        
         const currentUser = DB.getCurrentUser();
-        if (currentUser && currentUser.id === userId) {
-            this.updateBadge();
-            this.renderList();
-            this.showPushNotification(message);
-        }
-        
+        if (currentUser && currentUser.id === userId) { this.updateBadge(); this.renderList(); this.showPushNotification(message); }
         return newNotification;
     },
     
     showPushNotification: function(message) {
         if (this.permissionGranted && document.visibilityState === 'hidden') {
-            new Notification('Repórter da Periferia', {
-                body: message,
-                icon: '/icons/icon-192.png',
-                silent: false
-            });
+            new Notification('Repórter da Periferia', { body: message, icon: '/icons/icon-192.png', silent: false });
         } else if (this.permissionGranted && typeof showToast === 'function') {
             showToast('🔔 ' + message);
         }
@@ -54,18 +29,12 @@ const Notifications = {
     markAsRead: function(notificationId) {
         const notifications = DB.getNotifications();
         const index = notifications.findIndex(n => n.id === notificationId);
-        if (index !== -1) {
-            notifications[index].read = true;
-            DB.saveNotifications(notifications);
-            this.updateBadge();
-            this.renderList();
-        }
+        if (index !== -1) { notifications[index].read = true; DB.saveNotifications(notifications); this.updateBadge(); this.renderList(); }
     },
     
     markAllAsRead: function() {
         const currentUser = DB.getCurrentUser();
         if (!currentUser) return;
-        
         const notifications = DB.getNotifications();
         notifications.forEach(n => { if (n.userId === currentUser.id) n.read = true; });
         DB.saveNotifications(notifications);
@@ -76,71 +45,37 @@ const Notifications = {
     getUserNotifications: function() {
         const currentUser = DB.getCurrentUser();
         if (!currentUser) return [];
-        const notifications = DB.getNotifications();
-        return notifications.filter(n => n.userId === currentUser.id).sort((a, b) => b.id - a.id);
+        return DB.getNotifications().filter(n => n.userId === currentUser.id).sort((a, b) => b.id - a.id);
     },
     
     getUnreadCount: function() {
         const currentUser = DB.getCurrentUser();
         if (!currentUser) return 0;
-        const notifications = DB.getNotifications();
-        return notifications.filter(n => n.userId === currentUser.id && !n.read).length;
+        return DB.getNotifications().filter(n => n.userId === currentUser.id && !n.read).length;
     },
     
     updateBadge: function() {
         const count = this.getUnreadCount();
         const badge = document.getElementById('notificationBadge');
         const countSpan = document.getElementById('notificationCount');
-        
         if (badge && countSpan) {
-            if (count > 0) {
-                countSpan.textContent = count > 99 ? '99+' : count;
-                badge.style.display = 'flex';
-            } else {
-                badge.style.display = 'none';
-            }
+            if (count > 0) { countSpan.textContent = count > 99 ? '99+' : count; badge.style.display = 'flex'; }
+            else { badge.style.display = 'none'; }
         }
-        
         document.title = count > 0 ? `(${count}) Repórter da Periferia` : 'Repórter da Periferia';
     },
     
     renderList: function() {
         const container = document.getElementById('notificationsList');
         if (!container) return;
-        
         const notifications = this.getUserNotifications();
-        
-        if (notifications.length === 0) {
-            container.innerHTML = '<p class="placeholder">Sem notificações</p>';
-            return;
-        }
-        
+        if (notifications.length === 0) { container.innerHTML = '<p class="placeholder">Sem notificações</p>'; return; }
         container.innerHTML = notifications.slice(0, 10).map(notif => {
             const timeAgo = this.getTimeAgo(notif.createdAt);
-            const icon = this.getIconForType(notif.type);
-            
-            return `
-                <div class="notification-item" data-id="${notif.id}" style="${notif.read ? 'opacity: 0.7;' : 'border-left: 3px solid var(--accent);'}">
-                    <div class="notification-icon">${icon}</div>
-                    <div class="notification-text">
-                        ${notif.message}
-                        <div class="notification-time">${timeAgo}</div>
-                    </div>
-                </div>
-            `;
+            const icon = { 'like': '❤️', 'comment': '💬', 'follow': '👤', 'dm': '✉️' }[notif.type] || '🔔';
+            return `<div class="notification-item" data-id="${notif.id}" style="${notif.read ? 'opacity: 0.7;' : 'border-left: 3px solid var(--accent);'}"><div class="notification-icon">${icon}</div><div class="notification-text">${notif.message}<div class="notification-time">${timeAgo}</div></div></div>`;
         }).join('');
-        
-        document.querySelectorAll('.notification-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const id = parseInt(item.dataset.id);
-                this.markAsRead(id);
-            });
-        });
-    },
-    
-    getIconForType: function(type) {
-        const icons = { 'like': '❤️', 'comment': '💬', 'follow': '👤', 'dm': '✉️' };
-        return icons[type] || '🔔';
+        document.querySelectorAll('.notification-item').forEach(item => { item.addEventListener('click', () => { const id = parseInt(item.dataset.id); this.markAsRead(id); }); });
     },
     
     getTimeAgo: function(dateString) {
@@ -158,8 +93,4 @@ const Notifications = {
     }
 };
 
-if (typeof window !== 'undefined') {
-    document.addEventListener('DOMContentLoaded', () => {
-        Notifications.init();
-    });
-}
+if (typeof window !== 'undefined') { document.addEventListener('DOMContentLoaded', () => { Notifications.init(); }); }

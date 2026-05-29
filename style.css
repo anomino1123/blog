@@ -1,6 +1,7 @@
 /* ============================================
    REPÓRTER DA PERIFERIA - DESIGN COMPLETO
-   Versão 2.0 - Com todas as atualizações
+   Versão 3.0 - Estilo Instagram
+   Otimizado para celular e desktop
    ============================================ */
 
 * {
@@ -35,12 +36,6 @@ body {
     overflow-x: hidden;
 }
 
-body.dark-mode {
-    --bg-body: #0a0a0a;
-    --bg-sidebar: #0f0f1a;
-    --bg-card: #151525;
-}
-
 body.light-mode {
     --bg-body: #f5f5f5;
     --bg-sidebar: #ffffff;
@@ -57,7 +52,9 @@ body.light-mode {
     width: 100%;
 }
 
-/* ===== SIDEBAR ===== */
+/* ============================================
+   SIDEBAR ESQUERDA (MENU)
+   ============================================ */
 .sidebar {
     width: 280px;
     background: var(--bg-sidebar);
@@ -76,6 +73,7 @@ body.light-mode {
     left: 0;
 }
 
+/* Menu hamburguer */
 .menu-toggle {
     position: fixed;
     top: 15px;
@@ -114,8 +112,8 @@ body.light-mode {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 32px;
-    padding-bottom: 20px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
     border-bottom: 1px solid var(--border);
 }
 
@@ -141,7 +139,7 @@ body.light-mode {
     color: var(--text-secondary);
 }
 
-/* Busca na sidebar */
+/* Busca */
 .search-container {
     margin: 16px 0;
     padding: 0 8px;
@@ -162,6 +160,39 @@ body.light-mode {
     border-color: var(--accent);
 }
 
+/* Filtros */
+.filters-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 16px 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.filter-chip {
+    padding: 6px 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.7rem;
+    transition: all 0.2s;
+}
+
+.filter-chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
+.filter-chip:hover {
+    background: var(--accent);
+    color: white;
+}
+
+/* Perfil do usuário na sidebar */
 .user-info {
     display: flex;
     align-items: center;
@@ -169,7 +200,7 @@ body.light-mode {
     padding: 16px;
     background: var(--bg-card);
     border-radius: 20px;
-    margin-bottom: 24px;
+    margin: 16px 0 24px;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -212,6 +243,7 @@ body.light-mode {
     color: var(--text-secondary);
 }
 
+/* Menu de navegação */
 .nav-menu {
     display: flex;
     flex-direction: column;
@@ -256,7 +288,14 @@ body.light-mode {
     color: #ef4444;
 }
 
-/* ===== CONTEÚDO PRINCIPAL ===== */
+.logout-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+/* ============================================
+   CONTEÚDO PRINCIPAL (FEED)
+   ============================================ */
 .main-content {
     flex: 1;
     padding: 16px;
@@ -307,39 +346,9 @@ body.light-mode {
     border-color: var(--accent);
 }
 
-/* Filtros de categoria */
-.filters-bar {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-}
-
-.filter-chip {
-    padding: 8px 16px;
-    background: var(--bg-hover);
-    border: 1px solid var(--border);
-    border-radius: 40px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 0.75rem;
-    transition: all 0.2s;
-}
-
-.filter-chip.active {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-}
-
-.filter-chip:hover {
-    background: var(--accent);
-    color: white;
-}
-
-/* ===== POSTS ===== */
+/* ============================================
+   POSTS (PUBLICAÇÕES) - ESTILO INSTAGRAM
+   ============================================ */
 .feed-container {
     display: flex;
     flex-direction: column;
@@ -363,7 +372,7 @@ body.light-mode {
 .post-header {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     margin-bottom: 16px;
     flex-wrap: wrap;
 }
@@ -377,6 +386,7 @@ body.light-mode {
     align-items: center;
     justify-content: center;
     font-size: 1.3rem;
+    cursor: pointer;
     overflow: hidden;
     flex-shrink: 0;
 }
@@ -389,6 +399,7 @@ body.light-mode {
 
 .post-author-info {
     flex: 1;
+    cursor: pointer;
 }
 
 .post-author {
@@ -408,6 +419,22 @@ body.light-mode {
 .post-time {
     font-size: 0.65rem;
     color: var(--text-secondary);
+}
+
+/* Botão seguir pequeno */
+.follow-small-btn {
+    background: var(--accent);
+    border: none;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.follow-small-btn:hover {
+    background: var(--accent-hover);
 }
 
 .post-badge {
@@ -468,12 +495,26 @@ body.light-mode {
     text-decoration: underline;
 }
 
+/* Estatísticas do post (curtidas/comentários) */
+.post-stats {
+    display: flex;
+    gap: 16px;
+    padding: 8px 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+}
+
+.post-stats i {
+    margin-right: 4px;
+}
+
+/* Ações do post */
 .post-actions {
     display: flex;
     gap: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-    margin-top: 8px;
+    padding-top: 8px;
     flex-wrap: wrap;
 }
 
@@ -506,12 +547,15 @@ body.light-mode {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     padding: 8px;
-    border-radius: 20px;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    justify-content: center;
+    transition: all 0.2s;
 }
 
 .delete-btn {
@@ -519,7 +563,7 @@ body.light-mode {
 }
 
 .delete-btn:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(239, 68, 68, 0.2);
 }
 
 .edit-btn {
@@ -527,10 +571,10 @@ body.light-mode {
 }
 
 .edit-btn:hover {
-    background: rgba(59, 130, 246, 0.1);
+    background: rgba(59, 130, 246, 0.2);
 }
 
-/* Botão "Carregar mais" */
+/* Botão carregar mais */
 .load-more-btn {
     background: var(--bg-hover);
     border: 1px solid var(--border);
@@ -549,7 +593,9 @@ body.light-mode {
     color: white;
 }
 
-/* ===== SIDEBAR DIREITA ===== */
+/* ============================================
+   SIDEBAR DIREITA (MENSAGENS, SUGESTÕES, NOTIFICAÇÕES)
+   ============================================ */
 .right-sidebar {
     display: none;
     width: 300px;
@@ -592,9 +638,118 @@ body.light-mode {
     color: white;
     cursor: pointer;
     font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* ===== MODAIS ===== */
+/* Lista de mensagens */
+.dm-list, .suggestions-list, .notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dm-item, .suggestion-item, .notification-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dm-item:hover, .suggestion-item:hover {
+    background: var(--bg-hover);
+}
+
+.dm-avatar, .suggestion-avatar {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    overflow: hidden;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.dm-avatar img, .suggestion-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dm-info, .suggestion-info {
+    flex: 1;
+    cursor: pointer;
+}
+
+.dm-name, .suggestion-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.dm-preview, .suggestion-bio {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+/* Botão seguir */
+.follow-btn {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.follow-btn:hover {
+    background: var(--accent);
+    color: white;
+}
+
+/* Notificações */
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.notification-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+.notification-text {
+    flex: 1;
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+.notification-time {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* ============================================
+   MODAIS
+   ============================================ */
 .modal {
     display: none;
     position: fixed;
@@ -627,6 +782,10 @@ body.light-mode {
 
 .modal-content.large {
     max-width: 650px;
+}
+
+.modal-content.small {
+    max-width: 420px;
 }
 
 .modal-header {
@@ -685,6 +844,14 @@ body.light-mode {
     resize: vertical;
 }
 
+/* Contador de caracteres */
+.char-counter {
+    text-align: right;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
 /* Upload de imagem */
 .image-upload-area {
     background: var(--bg-hover);
@@ -708,34 +875,17 @@ body.light-mode {
     margin-top: 12px;
 }
 
-/* Contador de caracteres */
-.char-counter {
-    text-align: right;
-    font-size: 0.7rem;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
+.remove-image-btn {
+    background: #ef4444;
+    border: none;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-top: 8px;
+    cursor: pointer;
 }
 
-.char-counter.warning {
-    color: #f59e0b;
-}
-
-.char-counter.danger {
-    color: #ef4444;
-}
-
-/* Hashtags input */
-.hashtags-input {
-    width: 100%;
-    padding: 14px;
-    margin-bottom: 14px;
-    background: var(--bg-hover);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    color: var(--text-primary);
-    font-size: 0.9rem;
-}
-
+/* Hashtags hint */
 .hashtags-hint {
     font-size: 0.7rem;
     color: var(--text-secondary);
@@ -743,6 +893,7 @@ body.light-mode {
     margin-bottom: 14px;
 }
 
+/* Área de áudio */
 .audio-record-area {
     background: rgba(239, 68, 68, 0.1);
     border-radius: 20px;
@@ -787,6 +938,31 @@ body.light-mode {
     color: white;
 }
 
+/* Mensagens diretas */
+.dm-messages {
+    height: 350px;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg-hover);
+    border-radius: 16px;
+    margin-bottom: 16px;
+}
+
+.dm-input-area {
+    display: flex;
+    gap: 10px;
+}
+
+.dm-input-area input {
+    flex: 1;
+    padding: 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 40px;
+    color: white;
+    font-size: 0.9rem;
+}
+
 /* Toast de notificação */
 .toast {
     position: fixed;
@@ -802,6 +978,7 @@ body.light-mode {
     z-index: 2500;
     animation: fadeInUp 0.3s ease;
     box-shadow: var(--shadow);
+    white-space: nowrap;
 }
 
 @keyframes fadeInUp {
@@ -840,6 +1017,10 @@ body.light-mode {
     transform: scale(0.95);
 }
 
+.fab-button:hover {
+    transform: scale(1.1);
+}
+
 /* Notificação badge */
 .notification-badge {
     position: fixed;
@@ -858,7 +1039,7 @@ body.light-mode {
     z-index: 300;
 }
 
-/* Loading */
+/* Loading e placeholder */
 .loading-spinner {
     text-align: center;
     padding: 40px;
@@ -872,7 +1053,9 @@ body.light-mode {
     font-size: 0.85rem;
 }
 
-/* ===== RESPONSIVIDADE ===== */
+/* ============================================
+   RESPONSIVIDADE - CELULAR (até 767px)
+   ============================================ */
 @media (max-width: 767px) {
     .menu-toggle {
         display: flex;
@@ -910,9 +1093,47 @@ body.light-mode {
     
     .filters-bar {
         margin-left: 45px;
+        margin-right: 0;
+    }
+    
+    .post-actions {
+        gap: 12px;
+    }
+    
+    .action-btn {
+        font-size: 0.7rem;
+    }
+    
+    .post-stats {
+        font-size: 0.7rem;
     }
 }
 
+/* Celular pequeno (até 380px) */
+@media (max-width: 380px) {
+    .post-actions {
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .action-btn {
+        font-size: 0.65rem;
+    }
+    
+    .post-badge {
+        font-size: 0.55rem;
+    }
+    
+    .toast {
+        white-space: normal;
+        text-align: center;
+        max-width: 90%;
+    }
+}
+
+/* ============================================
+   RESPONSIVIDADE - TABLET (768px - 1024px)
+   ============================================ */
 @media (min-width: 768px) and (max-width: 1024px) {
     .menu-toggle {
         display: none;
@@ -939,6 +1160,9 @@ body.light-mode {
     }
 }
 
+/* ============================================
+   RESPONSIVIDADE - DESKTOP (acima de 1024px)
+   ============================================ */
 @media (min-width: 1024px) {
     .menu-toggle {
         display: none !important;
@@ -973,7 +1197,42 @@ body.light-mode {
     }
 }
 
-/* Scrollbar */
+/* ============================================
+   TELAS MUITO GRANDES (acima de 1400px)
+   ============================================ */
+@media (min-width: 1400px) {
+    .app-wrapper {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .main-content {
+        max-width: 800px;
+    }
+}
+
+/* ============================================
+   AJUSTES GERAIS
+   ============================================ */
+
+/* Prevenir zoom em inputs no iOS */
+@supports (-webkit-touch-callout: none) {
+    input, select, textarea {
+        font-size: 16px;
+    }
+}
+
+/* Rolagem suave */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Remover atraso de clique em mobile */
+a, button {
+    touch-action: manipulation;
+}
+
+/* Scrollbar personalizada */
 ::-webkit-scrollbar {
     width: 4px;
 }
@@ -993,17 +1252,17 @@ input:focus, textarea:focus, select:focus {
     border-color: var(--accent);
 }
 
-/* Prevenir zoom em iOS */
-@supports (-webkit-touch-callout: none) {
-    input, select, textarea {
-        font-size: 16px;
-    }
+/* Animações */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-html {
-    scroll-behavior: smooth;
+@keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
-a, button {
-    touch-action: manipulation;
+.post-card {
+    animation: slideIn 0.3s ease;
 }

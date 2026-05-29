@@ -1,7 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - APP PRINCIPAL
-// Versão 4.0 - FEED PARA TODOS (estilo Instagram)
-// TODOS OS POSTS APARECEM PARA TODOS OS USUÁRIOS
+// Versão 4.0 - FEED PÚBLICO (todos veem todos os posts)
 // ============================================
 
 let currentUser = null;
@@ -13,7 +12,6 @@ let audioChunks = [];
 let currentFilter = 'all';
 let currentSearchTerm = '';
 let currentPagePosts = 0;
-let isLoading = false;
 let postsToShow = 10;
 let editingPostId = null;
 let selectedImage = null;
@@ -98,12 +96,10 @@ function setupEventListeners() {
     document.getElementById('sendDmBtn').addEventListener('click', sendDirectMessage);
     document.getElementById('newChatBtn').addEventListener('click', openNewChatModal);
     
-    // Upload de imagem
     setupImageUpload('postImageInput', 'postImagePreview', (imageData) => {
         selectedImage = imageData;
     });
     
-    // Contador de caracteres
     initCharCounter('postContentInput', 'charCounter');
 }
 
@@ -113,7 +109,6 @@ function changePage(page) {
     currentFilter = 'all';
     currentSearchTerm = '';
     
-    // Limpar busca se existir
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.value = '';
     
@@ -146,8 +141,7 @@ function showSavedPosts() {
     if (savedPosts.length === 0) {
         container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;">
             <i class="fas fa-bookmark" style="font-size: 3rem; opacity: 0.3;"></i>
-            <p style="margin-top: 16px;">Você ainda não salvou nenhum post.</p>
-            <p style="font-size: 0.8rem;">Clique no ícone 🔖 nos posts para salvar!</p>
+            <p>Você ainda não salvou nenhum post.</p>
         </div>`;
         return;
     }
@@ -182,12 +176,10 @@ function setupFilters() {
 function getFilteredPosts(posts) {
     let filtered = [...posts];
     
-    // Filtrar por tipo (pensamento, tese, etc)
     if (currentFilter !== 'all') {
         filtered = filtered.filter(p => p.tipo === currentFilter);
     }
     
-    // Filtrar por busca (texto ou hashtag)
     if (currentSearchTerm) {
         const term = currentSearchTerm.toLowerCase();
         filtered = filtered.filter(p => 
@@ -197,22 +189,17 @@ function getFilteredPosts(posts) {
         );
     }
     
-    // Ordenar por data (mais recentes primeiro)
     filtered.sort((a, b) => new Date(b.data) - new Date(a.data));
-    
     return filtered;
 }
 
 function renderCurrentPage() {
     let posts = DB.getPosts();
-    
-    // ORDENAR POR DATA (MAIS RECENTES PRIMEIRO)
     posts.sort((a, b) => new Date(b.data) - new Date(a.data));
     
     switch(currentPage) {
         case 'feed':
-            // 🔥 MOSTRA TODOS OS POSTS DE TODOS OS USUÁRIOS
-            // Igual ao Instagram - feed público
+            // FEED PÚBLICO: mostra TODOS os posts de TODOS os usuários
             posts = posts;
             break;
         case 'teses':
@@ -233,10 +220,7 @@ function renderCurrentPage() {
             break;
     }
     
-    // Aplicar filtros de busca e categoria
     posts = getFilteredPosts(posts);
-    
-    // Renderizar com paginação
     renderFeedWithPagination(posts);
 }
 
@@ -246,21 +230,13 @@ function renderFeedWithPagination(allPosts) {
     const hasMore = paginatedPosts.length < allPosts.length;
     
     if (paginatedPosts.length === 0 && currentPagePosts === 0) {
-        if (currentPage === 'feed') {
-            container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;">
-                <i class="fas fa-globe" style="font-size: 3rem; opacity: 0.3;"></i>
-                <p style="margin-top: 16px;">Nenhuma publicação por aqui ainda.</p>
-                <p style="font-size: 0.8rem; margin-top: 8px;">Seja o primeiro a publicar algo!</p>
-                <button onclick="document.getElementById('fabPostBtn').click()" style="background: var(--accent); border: none; padding: 10px 20px; border-radius: 40px; color: white; margin-top: 16px; cursor: pointer;">
-                    <i class="fas fa-plus"></i> Publicar agora
-                </button>
-            </div>`;
-        } else {
-            container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;">
-                <i class="fas fa-newspaper" style="font-size: 3rem; opacity: 0.3;"></i>
-                <p style="margin-top: 16px;">Nenhuma publicação encontrada.</p>
-            </div>`;
-        }
+        container.innerHTML = `<div class="placeholder" style="padding: 60px; text-align: center;">
+            <i class="fas fa-globe" style="font-size: 3rem; opacity: 0.3;"></i>
+            <p>Nenhuma publicação ainda.</p>
+            <button onclick="document.getElementById('fabPostBtn').click()" style="background: var(--accent); border: none; padding: 10px 20px; border-radius: 40px; color: white; margin-top: 16px; cursor: pointer;">
+                <i class="fas fa-plus"></i> Publicar agora
+            </button>
+        </div>`;
         return;
     }
     
@@ -269,7 +245,7 @@ function renderFeedWithPagination(allPosts) {
     if (hasMore) {
         const loadMoreBtn = document.createElement('button');
         loadMoreBtn.className = 'load-more-btn';
-        loadMoreBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Carregar mais publicações';
+        loadMoreBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Carregar mais';
         loadMoreBtn.onclick = () => {
             currentPagePosts += postsToShow;
             renderCurrentPage();
@@ -330,7 +306,7 @@ function renderPostCard(post) {
     const verifiedBadge = author.isVerified ? '<i class="fas fa-check-circle verified-icon"></i>' : '';
     
     return `
-        <div class="post-card" data-post-id="${post.id}">
+        <div class="post-card">
             <div class="post-header">
                 <div class="post-avatar" onclick="viewProfile(${author.id})">
                     ${author.avatar ? `<img src="${author.avatar}">` : `<span>${author.emoji || '📝'}</span>`}
@@ -371,10 +347,10 @@ function renderPostCard(post) {
                 </button>
             </div>
             <div id="comments-${post.id}" style="display: none; margin-top: 16px;">
-                <div class="comment-list">${commentsHtml || '<p style="opacity:0.6;">Seja o primeiro a comentar</p>'}</div>
-                <div style="display: flex; gap: 8px; margin-top: 12px;">
-                    <input type="text" id="commentInput-${post.id}" placeholder="Escreva um comentário..." style="flex:1; padding: 10px; background: var(--bg-hover); border: 1px solid var(--border); border-radius: 40px; color: white;">
-                    <button onclick="addComment(${post.id})" style="background: var(--accent); border: none; padding: 0 20px; border-radius: 40px; cursor: pointer;">Enviar</button>
+                <div class="comment-list">${commentsHtml || '<p>Seja o primeiro a comentar</p>'}</div>
+                <div class="comment-input">
+                    <input type="text" id="commentInput-${post.id}" placeholder="Escreva um comentário...">
+                    <button onclick="addComment(${post.id})">Enviar</button>
                 </div>
             </div>
         </div>
@@ -389,7 +365,6 @@ function escapeHtml(text) {
 
 function renderSuggestions() {
     const users = DB.getUsers();
-    // Sugerir pessoas que o usuário NÃO segue e que não são ele mesmo
     const suggestions = users.filter(u => 
         u.id !== currentUser.id && 
         !currentUser.following.includes(u.id)
@@ -398,7 +373,7 @@ function renderSuggestions() {
     const container = document.getElementById('suggestionsList');
     
     if (suggestions.length === 0) {
-        container.innerHTML = '<p class="placeholder">Nenhuma sugestão no momento</p>';
+        container.innerHTML = '<p class="placeholder">Nenhuma sugestão</p>';
         return;
     }
     
@@ -408,7 +383,7 @@ function renderSuggestions() {
                 ${user.avatar ? `<img src="${user.avatar}">` : user.emoji || '📝'}
             </div>
             <div class="suggestion-info" onclick="viewProfile(${user.id})">
-                <div class="suggestion-name">${user.name} ${user.isVerified ? '<i class="fas fa-check-circle" style="color:#3b82f6; font-size:0.7rem;"></i>' : ''}</div>
+                <div class="suggestion-name">${user.name} ${user.isVerified ? '<i class="fas fa-check-circle"></i>' : ''}</div>
                 <div class="suggestion-bio">${user.bio.substring(0, 30)}</div>
             </div>
             <button class="follow-btn" onclick="followUser(${user.id})">Seguir</button>
@@ -442,9 +417,7 @@ function renderDMList() {
         const user = DB.getUserById(chat.userId);
         return `
             <div class="dm-item" onclick="openDM(${chat.userId})">
-                <div class="dm-avatar">
-                    ${user?.avatar ? `<img src="${user.avatar}">` : user?.emoji || '📝'}
-                </div>
+                <div class="dm-avatar">${user?.avatar ? `<img src="${user.avatar}">` : user?.emoji || '📝'}</div>
                 <div class="dm-info">
                     <div class="dm-name">${user?.name}</div>
                     <div class="dm-preview">${escapeHtml(chat.lastMessage.substring(0, 40))}</div>
@@ -453,8 +426,6 @@ function renderDMList() {
         `;
     }).join('');
 }
-
-// ===== FUNÇÕES DE INTERAÇÃO =====
 
 window.toggleLike = function(postId) {
     const posts = DB.getPosts();
@@ -469,9 +440,9 @@ window.toggleLike = function(postId) {
         } else {
             post.curtidas.push(currentUser.id);
             if (post.userId !== currentUser.id) {
-                Notifications.create(post.userId, 'like', `${currentUser.name} curtiu seu post "${post.titulo.substring(0, 30)}"`, postId);
+                Notifications.create(post.userId, 'like', `${currentUser.name} curtiu seu post`, postId);
             }
-            showToast('❤️ Você curtiu este post');
+            showToast('❤️ Curtiu!');
         }
         DB.savePosts(posts);
         renderCurrentPage();
@@ -481,10 +452,10 @@ window.toggleLike = function(postId) {
 window.toggleSavePost = function(postId) {
     if (DB.isPostSaved(currentUser.id, postId)) {
         DB.unsavePost(currentUser.id, postId);
-        showToast('❌ Post removido dos salvos');
+        showToast('❌ Removido dos salvos');
     } else {
         DB.savePost(currentUser.id, postId);
-        showToast('✅ Post salvo nos favoritos');
+        showToast('✅ Salvo nos favoritos');
     }
     renderCurrentPage();
 };
@@ -499,7 +470,7 @@ window.followUser = function(userId) {
     } else {
         DB.followUser(currentUser.id, userId);
         Notifications.create(userId, 'follow', `${currentUser.name} começou a seguir você`, currentUser.id);
-        showToast(`✅ Você agora segue ${targetUser.name}`);
+        showToast(`✅ Seguindo ${targetUser.name}`);
     }
     
     renderSuggestions();
@@ -530,7 +501,7 @@ window.addComment = function(postId) {
         DB.savePosts(posts);
         
         if (post.userId !== currentUser.id) {
-            Notifications.create(post.userId, 'comment', `${currentUser.name} comentou no seu post: "${text.substring(0, 50)}"`, postId);
+            Notifications.create(post.userId, 'comment', `${currentUser.name} comentou no seu post`, postId);
         }
         input.value = '';
         renderCurrentPage();
@@ -547,11 +518,8 @@ window.viewProfile = function(userId) {
     const modalHtml = `
         <div id="profileModal" class="modal open" style="display: flex;">
             <div class="modal-content small" style="text-align: center;">
-                <div class="modal-header">
-                    <h3>Perfil</h3>
-                    <button class="close-modal" onclick="closeProfileModal()">&times;</button>
-                </div>
-                <div style="text-align: center;">
+                <div class="modal-header"><h3>Perfil</h3><button class="close-modal" onclick="closeProfileModal()">&times;</button></div>
+                <div>
                     <div style="width: 80px; height: 80px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 16px; overflow: hidden;">
                         ${user.avatar ? `<img src="${user.avatar}" style="width:100%;height:100%;object-fit:cover;">` : user.emoji || '📝'}
                     </div>
@@ -563,7 +531,7 @@ window.viewProfile = function(userId) {
                         <div><strong>${user.following.length}</strong><br><span style="font-size: 0.7rem;">Seguindo</span></div>
                     </div>
                     ${user.id !== currentUser.id ? `
-                        <button onclick="followUser(${user.id}); closeProfileModal();" style="background: ${isFollowing ? '#ef4444' : 'var(--accent)'}; border: none; padding: 10px 30px; border-radius: 40px; color: white; cursor: pointer; margin-top: 8px;">
+                        <button onclick="followUser(${user.id}); closeProfileModal();" style="background: ${isFollowing ? '#ef4444' : 'var(--accent)'}; border: none; padding: 10px 30px; border-radius: 40px; color: white; cursor: pointer;">
                             ${isFollowing ? 'Deixar de seguir' : 'Seguir'}
                         </button>
                     ` : ''}
@@ -574,7 +542,6 @@ window.viewProfile = function(userId) {
     
     const existingModal = document.getElementById('profileModal');
     if (existingModal) existingModal.remove();
-    
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 };
 
@@ -584,7 +551,7 @@ window.closeProfileModal = function() {
 };
 
 window.deletePost = function(postId) {
-    if (confirm('Tem certeza que deseja excluir esta publicação? Esta ação não pode ser desfeita.')) {
+    if (confirm('Tem certeza que deseja excluir esta publicação?')) {
         DB.deletePost(postId);
         renderCurrentPage();
         showToast('🗑️ Publicação excluída');
@@ -609,7 +576,7 @@ window.editPost = function(postId) {
         }
         
         openPostModal();
-        document.getElementById('publishPostBtn').textContent = '✏️ Atualizar publicação';
+        document.getElementById('publishPostBtn').textContent = '✏️ Atualizar';
     }
 };
 
@@ -628,15 +595,9 @@ window.viewFullImage = function(imageUrl) {
     if (modal && fullImage) {
         fullImage.src = imageUrl;
         modal.style.display = 'flex';
-        const closeBtn = modal.querySelector('.close-modal');
-        if (closeBtn) closeBtn.onclick = () => modal.style.display = 'none';
-        modal.onclick = (e) => {
-            if (e.target === modal) modal.style.display = 'none';
-        };
     }
 };
 
-// ===== FUNÇÕES DE DM =====
 window.openDM = function(userId) {
     currentDMTarget = userId;
     const user = DB.getUserById(userId);
@@ -654,7 +615,7 @@ function renderDMMessages(userId) {
             <div style="background: ${msg.from === currentUser.id ? 'var(--accent)' : 'var(--bg-hover)'}; display: inline-block; padding: 10px 16px; border-radius: 20px; max-width: 80%;">
                 ${escapeHtml(msg.message)}
             </div>
-            <div style="font-size: 0.65rem; opacity: 0.6; margin-top: 4px;">${new Date(msg.time).toLocaleTimeString()}</div>
+            <div style="font-size: 0.65rem; opacity: 0.6;">${new Date(msg.time).toLocaleTimeString()}</div>
         </div>
     `).join('');
     container.scrollTop = container.scrollHeight;
@@ -672,7 +633,7 @@ function sendDirectMessage() {
 
 function openNewChatModal() {
     const users = DB.getUsers().filter(u => u.id !== currentUser.id);
-    const username = prompt('Digite o nome de usuário para conversar:\n\n' + users.map(u => `@${u.username} - ${u.name}`).join('\n'));
+    const username = prompt('Digite o nome de usuário:\n\n' + users.map(u => `@${u.username} - ${u.name}`).join('\n'));
     if (username) {
         const user = DB.getUserByUsername(username);
         if (user) openDM(user.id);
@@ -680,7 +641,6 @@ function openNewChatModal() {
     }
 }
 
-// ===== POSTAGEM =====
 function openPostModal() {
     document.getElementById('postModal').classList.add('open');
     if (!editingPostId) {
@@ -693,8 +653,6 @@ function openPostModal() {
         document.getElementById('audioDataField').value = '';
         selectedImage = null;
         document.getElementById('publishPostBtn').textContent = 'Publicar';
-        const charCounter = document.getElementById('charCounter');
-        if (charCounter) charCounter.textContent = '0/2000';
     }
 }
 
@@ -720,7 +678,7 @@ function setupAudioRecording() {
             mediaRecorder.start();
             startBtn.style.display = 'none';
             stopBtn.style.display = 'block';
-            showToast('🎙️ Gravando... fale à vontade');
+            showToast('🎙️ Gravando...');
         } catch(err) {
             showToast('❌ Permita acesso ao microfone');
         }
@@ -780,7 +738,7 @@ function publishPost() {
             editado: false
         };
         DB.addPost(newPost);
-        showToast('✅ Publicação criada! Agora todos podem ver!');
+        showToast('✅ Publicado! Todos podem ver agora!');
     }
     
     document.getElementById('postModal').classList.remove('open');
@@ -823,7 +781,6 @@ function startRealtimeUpdates() {
     }, 10000);
 }
 
-// Funções auxiliares
 function setupImageUpload(inputId, previewId, callback) {
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
@@ -853,56 +810,9 @@ function initCharCounter(textareaId, counterId) {
     textarea.addEventListener('input', () => {
         const length = textarea.value.length;
         counter.textContent = `${length}/2000`;
-        if (length > 2000) {
-            counter.style.color = '#ef4444';
-        } else if (length > 1800) {
-            counter.style.color = '#f59e0b';
-        } else {
-            counter.style.color = '';
-        }
     });
 }
 
-function showToast(message) {
-    const existingToast = document.querySelector('.toast');
-    if (existingToast) existingToast.remove();
-    
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.remove();
-    }, 3000);
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// Exportar funções globais
-window.toggleLike = toggleLike;
-window.toggleSavePost = toggleSavePost;
-window.toggleComments = toggleComments;
-window.addComment = addComment;
-window.followUser = followUser;
 window.playAudio = (audioData) => { new Audio(audioData).play(); };
-window.openDM = openDM;
-window.deletePost = deletePost;
-window.editPost = editPost;
-window.searchHashtag = searchHashtag;
-window.viewFullImage = viewFullImage;
-window.viewProfile = viewProfile;
-window.closeProfileModal = closeProfileModal;
-window.sharePost = (title, text, url) => {
-    if (navigator.share) {
-        navigator.share({ title: title, text: text, url: url });
-    } else {
-        navigator.clipboard.writeText(url);
-        showToast('Link copiado!');
-    }
-};
 window.showToast = showToast;
+window.sharePost = sharePost;

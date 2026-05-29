@@ -1,6 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - DATABASE
-// Versão 2.0 - Com posts salvos e mais recursos
+// Versão 4.0
 // ============================================
 
 const DB = {
@@ -79,7 +79,7 @@ const DB = {
                 userId: 1,
                 tipo: "jornal",
                 titulo: "Bem-vindos ao Repórter da Periferia",
-                conteudo: "Este é um espaço para pensar criticamente a sociedade, a escola e o mundo. Aqui, a periferia tem voz própria.",
+                conteudo: "Este é um espaço para pensar criticamente a sociedade, a escola e o mundo. Aqui, a periferia tem voz própria. TODOS os posts aparecem para TODOS os usuários!",
                 emoji: "📰",
                 imagem: null,
                 hashtags: ["periferia", "educacao", "sociedade"],
@@ -125,7 +125,6 @@ const DB = {
         return true;
     },
 
-    // Posts salvos (favoritos)
     getSavedPosts: function(userId) {
         const saved = localStorage.getItem(this.KEYS.SAVED_POSTS);
         const savedData = saved ? JSON.parse(saved) : {};
@@ -183,7 +182,6 @@ const DB = {
             read: false
         });
         this.saveDMs(dms);
-        
         if (typeof Notifications !== 'undefined') {
             Notifications.create(toUserId, 'dm', `${this.getUserById(fromUserId).name} te enviou uma mensagem`, fromUserId);
         }
@@ -242,7 +240,6 @@ const DB = {
             currentUser.following.push(targetUserId);
             targetUser.followers.push(currentUserId);
             this.saveUsers(users);
-            
             if (typeof Notifications !== 'undefined') {
                 Notifications.create(targetUserId, 'follow', `${currentUser.name} começou a seguir você`, currentUserId);
             }
@@ -277,14 +274,6 @@ const DB = {
             post.titulo.toLowerCase().includes(termoLower) ||
             post.conteudo.toLowerCase().includes(termoLower) ||
             (post.hashtags && post.hashtags.some(tag => tag.toLowerCase().includes(termoLower)))
-        );
-    },
-
-    getPostsByHashtag: function(hashtag) {
-        const posts = this.getPosts();
-        const hashtagLower = hashtag.toLowerCase().replace('#', '');
-        return posts.filter(post => 
-            post.hashtags && post.hashtags.some(tag => tag.toLowerCase() === hashtagLower)
         );
     }
 };

@@ -1,9 +1,9 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - FUNÇÕES MOBILE
 // Menu hamburguer, toast, utils
+// Versão 4.0
 // ============================================
 
-// Toast de notificação
 function showToast(message, duration = 3000) {
     const existingToast = document.querySelector('.toast');
     if (existingToast) existingToast.remove();
@@ -18,34 +18,19 @@ function showToast(message, duration = 3000) {
     }, duration);
 }
 
-// Copiar texto para clipboard
-async function copyToClipboard(text) {
-    try {
-        await navigator.clipboard.writeText(text);
-        showToast('✅ Link copiado!');
-    } catch (err) {
-        showToast('❌ Erro ao copiar');
-    }
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    showToast('✅ Link copiado!');
 }
 
-// Compartilhar post
-async function sharePost(title, text, url) {
+function sharePost(title, text, url) {
     if (navigator.share) {
-        try {
-            await navigator.share({
-                title: title,
-                text: text,
-                url: url
-            });
-        } catch (err) {
-            console.log('Compartilhamento cancelado');
-        }
+        navigator.share({ title: title, text: text, url: url });
     } else {
         copyToClipboard(url);
     }
 }
 
-// Menu hamburguer
 function initMobileMenu() {
     if (document.querySelector('.menu-toggle')) return;
     
@@ -85,29 +70,20 @@ function initMobileMenu() {
     });
 }
 
-// Contador de caracteres
 function initCharCounter(textareaId, counterId, maxLength = 2000) {
     const textarea = document.getElementById(textareaId);
     const counter = document.getElementById(counterId);
-    
     if (!textarea || !counter) return;
     
     function updateCounter() {
         const length = textarea.value.length;
         counter.textContent = `${length}/${maxLength}`;
-        
-        if (length > maxLength * 0.9) {
-            counter.classList.add('warning');
-        } else {
-            counter.classList.remove('warning');
-        }
-        
         if (length > maxLength) {
-            counter.classList.add('danger');
-            textarea.style.borderColor = '#ef4444';
+            counter.style.color = '#ef4444';
+        } else if (length > maxLength * 0.9) {
+            counter.style.color = '#f59e0b';
         } else {
-            counter.classList.remove('danger');
-            textarea.style.borderColor = '';
+            counter.style.color = '';
         }
     }
     
@@ -115,11 +91,9 @@ function initCharCounter(textareaId, counterId, maxLength = 2000) {
     updateCounter();
 }
 
-// Upload de imagem
 function setupImageUpload(inputId, previewId, onImageSelected) {
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
-    
     if (!input) return;
     
     input.addEventListener('change', (e) => {
@@ -138,7 +112,6 @@ function setupImageUpload(inputId, previewId, onImageSelected) {
     });
 }
 
-// Salvar preferência de tema
 function initTheme() {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light') {
@@ -151,19 +124,16 @@ function toggleTheme() {
     localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
 }
 
-// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
     initMobileMenu();
     initTheme();
     
-    // Botão de tema
     const themeBtn = document.getElementById('darkModeBtn');
     if (themeBtn) {
         themeBtn.addEventListener('click', toggleTheme);
     }
 });
 
-// Exportar funções
 window.showToast = showToast;
 window.copyToClipboard = copyToClipboard;
 window.sharePost = sharePost;

@@ -1,5 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - AUTENTICAÇÃO
+// Versão 4.0
 // ============================================
 
 const Auth = {
@@ -53,14 +54,6 @@ const Auth = {
     
     isLoggedIn: function() {
         return DB.getCurrentUser() !== null;
-    },
-    
-    requireAuth: function() {
-        if (!this.isLoggedIn()) {
-            window.location.href = 'login.html';
-            return false;
-        }
-        return true;
     },
     
     updateProfile: function(userId, updates) {

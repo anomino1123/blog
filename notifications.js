@@ -1,6 +1,6 @@
 // ============================================
 // REPÓRTER DA PERIFERIA - NOTIFICAÇÕES
-// Com push notifications reais
+// Versão 4.0
 // ============================================
 
 const Notifications = {
@@ -10,24 +10,6 @@ const Notifications = {
         if ('Notification' in window) {
             const permission = await Notification.requestPermission();
             this.permissionGranted = permission === 'granted';
-            
-            if (this.permissionGranted) {
-                console.log('Notificações push ativadas');
-            }
-        }
-        
-        // Registrar Service Worker para push
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-            try {
-                const registration = await navigator.serviceWorker.ready;
-                const subscription = await registration.pushManager.getSubscription();
-                if (!subscription) {
-                    // Aqui você pode enviar para um backend
-                    console.log('Push não configurado');
-                }
-            } catch (err) {
-                console.log('Erro no push:', err);
-            }
         }
     },
 
@@ -62,15 +44,10 @@ const Notifications = {
             new Notification('Repórter da Periferia', {
                 body: message,
                 icon: '/icons/icon-192.png',
-                badge: '/icons/icon-72.png',
-                vibrate: [200, 100, 200],
                 silent: false
             });
-        } else if (this.permissionGranted) {
-            // Mostrar toast se estiver na página
-            if (typeof showToast === 'function') {
-                showToast('🔔 ' + message);
-            }
+        } else if (this.permissionGranted && typeof showToast === 'function') {
+            showToast('🔔 ' + message);
         }
     },
     
@@ -90,9 +67,7 @@ const Notifications = {
         if (!currentUser) return;
         
         const notifications = DB.getNotifications();
-        notifications.forEach(n => {
-            if (n.userId === currentUser.id) n.read = true;
-        });
+        notifications.forEach(n => { if (n.userId === currentUser.id) n.read = true; });
         DB.saveNotifications(notifications);
         this.updateBadge();
         this.renderList();
@@ -183,7 +158,6 @@ const Notifications = {
     }
 };
 
-// Inicializar
 if (typeof window !== 'undefined') {
     document.addEventListener('DOMContentLoaded', () => {
         Notifications.init();
